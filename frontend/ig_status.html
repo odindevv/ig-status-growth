@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IG Account Status</title>
+<style>
+  :root {
+    --bg: #0f1117; --card: #1a1d27; --border: #2a2d3a;
+    --fg: #e4e4e7; --text: #e4e4e7; --muted: #71717a; --accent: #6366f1;
+    --green: #22c55e; --red: #ef4444; --yellow: #eab308; --blue: #3b82f6;
+    --purple: #a855f7; --orange: #f97316; --cyan: #06b6d4;
+  }
+  html.light {
+    --bg: #f5f5f7; --card: #ffffff; --border: #e0e0e4;
+    --fg: #1a1a1a; --text: #1a1a1a; --muted: #6b7280; --accent: #4f46e5;
+    --green: #16a34a; --red: #dc2626; --yellow: #ca8a04; --blue: #2563eb;
+    --purple: #7c3aed; --orange: #ea580c; --cyan: #0891b2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+  /* ── Header ── */
+  .header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+  .header h1 { font-size: 1.35rem; font-weight: 700; }
+  .header h1 span { color: var(--accent); }
+  .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  /* ── Buttons ── */
+  .btn { background: var(--accent); color: #fff; border: none; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.15s; }
+  .btn:hover { opacity: 0.85; }
+  .btn.sm { padding: 4px 10px; font-size: 0.75rem; }
+  .btn.outline { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn.outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
+  .btn.danger:hover { background: var(--red); color: #fff; }
+  .btn.success { background: var(--green); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* ── Stats row ── */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-bottom: 24px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; text-align: center; }
+  .stat .label { color: var(--muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .stat .val { font-size: 1.4rem; font-weight: 700; }
+  .stat .val.green { color: var(--green); }
+  .stat .val.red { color: var(--red); }
+  .stat .val.yellow { color: var(--yellow); }
+  .stat .val.blue { color: var(--blue); }
+  .stat .val.muted { color: var(--muted); font-size: 0.85rem; }
+
+  /* ── Scheduler bar ── */
+  .sched-row { display: flex; align-items: center; gap: 6px; }
+  .sched-row input[type="time"] { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 3px 7px; border-radius: 5px; font-size: 0.78rem; }
+  .sched-status { font-size: 0.7rem; color: var(--muted); }
+
+  /* ── Tabs ── */
+  .tab-bar { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .tab-btn { background: transparent; border: none; color: var(--muted); font-size: 0.82rem; font-weight: 600; padding: 10px 18px; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── Section headers ── */
+  .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .section-head h2 { font-size: 1rem; font-weight: 600; }
+  .section-actions { display: flex; gap: 6px; }
+
+  /* ── Remote Workers section ── */
+  .worker-section-header { display: flex; align-items: center; gap: 10px; margin: 24px 0 12px; padding: 6px 10px; cursor: pointer; border-radius: 8px; transition: background 0.15s; user-select: none; }
+  .worker-section-header:hover { background: rgba(255,255,255,0.03); }
+  .worker-section-header .ws-arrow { font-size: 0.7rem; color: var(--muted); transition: transform 0.2s; width: 16px; }
+  .worker-section-header.collapsed .ws-arrow { transform: rotate(-90deg); }
+  .worker-section-header h3 { font-size: 0.85rem; font-weight: 600; color: var(--cyan); }
+  .worker-section-header.local-worker h3 { color: var(--accent); }
+  .worker-section-header .worker-badge { font-size: 0.6rem; padding: 2px 10px; border-radius: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .worker-section-header .worker-badge.remote { background: rgba(6,182,212,0.12); color: var(--cyan); border: 1px solid rgba(6,182,212,0.3); }
+  .worker-section-header .worker-badge.local { background: rgba(99,102,241,0.12); color: var(--accent); border: 1px solid rgba(99,102,241,0.3); }
+  .worker-section-body { overflow: hidden; transition: max-height 0.3s ease; }
+  .worker-section-body.collapsed { max-height: 0 !important; overflow: hidden; }
+  .remote-section-header { display: none; }
+  .device-group.remote-device { border-color: rgba(6,182,212,0.25); }
+  .device-group.remote-device .dg-header { border-bottom-color: rgba(6,182,212,0.15); }
+  .device-group.remote-device .dg-device-id::before { content: '📡 '; }
+
+  /* ── Device cards ── */
+  .device-grid { display: flex; flex-direction: column; gap: 16px; margin-bottom: 28px; }
+  .device-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: border-color 0.15s; }
+  .device-card:hover { border-color: #3a3d4a; }
+  .device-card.checking { border-color: var(--accent); }
+  .device-card.checking .dc-body { opacity: 0.6; }
+  .dc-body { padding: 16px 18px 14px; }
+
+  .dc-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+  .dc-info { flex: 1; min-width: 0; }
+  .dc-username { font-weight: 600; font-size: 0.95rem; }
+  .dc-username input { font-weight: 600; font-size: 0.95rem; color: var(--text); background: transparent; border: 1px solid transparent; padding: 1px 4px; border-radius: 4px; width: 100%; max-width: 170px; }
+  .dc-username input:hover { border-color: var(--border); }
+  .dc-username input:focus { border-color: var(--accent); outline: none; background: var(--bg); }
+  .dc-proxy-input { font-size: 0.7rem; color: var(--muted); background: transparent; border: 1px solid transparent; padding: 1px 4px; border-radius: 4px; width: 100%; max-width: 260px; font-family: monospace; }
+  .dc-proxy-input:hover { border-color: var(--border); }
+  .dc-proxy-input:focus { border-color: var(--accent); outline: none; background: var(--bg); color: var(--text); }
+  .dc-id { color: var(--muted); font-size: 0.68rem; font-family: monospace; margin-top: 2px; }
+  .dc-badges { display: flex; gap: 4px; flex-shrink: 0; }
+
+  /* ── Badges ── */
+  .badge { font-size: 0.6rem; padding: 2px 7px; border-radius: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .badge.active { background: #22c55e18; color: var(--green); border: 1px solid #22c55e33; }
+  .badge.banned { background: #ef444418; color: var(--red); border: 1px solid #ef444433; }
+  .badge.checkpoint { background: #eab30818; color: var(--yellow); border: 1px solid #eab30833; }
+  .badge.expired { background: #71717a15; color: var(--muted); border: 1px solid var(--border); }
+  .badge.unknown { background: #3b82f618; color: var(--blue); border: 1px solid #3b82f633; }
+  .badge.mon { background: #6366f118; color: var(--accent); border: 1px solid #6366f133; }
+  .badge.en { background: #22c55e18; color: var(--green); border: 1px solid #22c55e33; }
+
+  /* ── Section status grid ── */
+  .dc-sections { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; margin-bottom: 12px; }
+  .dc-sec { text-align: center; padding: 8px 4px; background: var(--bg); border-radius: 6px; }
+  .dc-sec .sec-icon { font-size: 1rem; }
+  .dc-sec .sec-label { font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 3px; }
+  .dc-sec.problem { border: 1px solid rgba(239,68,68,0.3); }
+  .dc-sec.ok { border: 1px solid rgba(34,197,94,0.2); }
+
+  /* ── Proxy status ── */
+  .dc-proxy { display: flex; gap: 8px; margin-bottom: 10px; font-size: 0.72rem; color: var(--muted); }
+  .dc-proxy .proxy-badge { padding: 2px 7px; border-radius: 4px; font-size: 0.6rem; font-weight: 600; text-transform: uppercase; }
+  .dc-proxy .proxy-badge.ok { background: #22c55e18; color: var(--green); }
+  .dc-proxy .proxy-badge.fail { background: #ef444418; color: var(--red); }
+
+  /* ── Footer ── */
+  .dc-foot { display: flex; align-items: center; justify-content: space-between; }
+  .dc-meta { font-size: 0.68rem; color: #9ca3af; }
+  .dc-actions { display: flex; align-items: center; gap: 5px; }
+
+  /* ── Toggle ── */
+  .toggle input { display: none; }
+  .toggle .sl { display: inline-block; width: 30px; height: 16px; background: var(--border); border-radius: 8px; position: relative; cursor: pointer; transition: background 0.2s; vertical-align: middle; }
+  .toggle .sl::after { content: ''; position: absolute; width: 12px; height: 12px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: transform 0.2s; }
+  .toggle input:checked + .sl { background: var(--green); }
+  .toggle input:checked + .sl::after { transform: translateX(14px); }
+  .toggle input:disabled + .sl { opacity: 0.3; cursor: not-allowed; }
+  .tl-text { font-size: 0.6rem; font-weight: 700; color: var(--muted); letter-spacing: 0.5px; }
+  .btn-check { background: var(--accent) !important; color: #000 !important; font-weight: 600; }
+  .btn-check:hover { filter: brightness(1.15); }
+
+  /* ── Spinner ── */
+  .btn-spinner { display: inline-block; width: 10px; height: 10px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Loading overlay ── */
+  .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+  .loading-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px 32px; text-align: center; }
+  .loading-box .ld-spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 10px; }
+  .loading-box .ld-text { font-size: 0.8rem; color: var(--muted); }
+
+  /* ── Toast ── */
+  .toast { position: fixed; bottom: 20px; right: 20px; padding: 10px 18px; border-radius: 8px; font-size: 0.78rem; color: #fff; z-index: 999; animation: fadeIn .3s; }
+  .toast.ok { background: var(--green); }
+  .toast.err { background: var(--red); }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; } }
+
+  /* ── History table ── */
+  .hist-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  .hist-table th { text-align: left; padding: 8px 12px; color: var(--muted); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+  .hist-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .hist-table tr:hover { background: rgba(99,102,241,0.04); }
+
+  /* ── Discover modal ── */
+  .modal-bg { position: fixed; inset: 0; background: #000a; z-index: 100; display: flex; align-items: center; justify-content: center; }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 90%; max-width: 560px; max-height: 80vh; overflow-y: auto; }
+  .modal h2 { font-size: 1.05rem; margin-bottom: 14px; }
+  .modal .close { float: right; cursor: pointer; color: var(--muted); font-size: 1.2rem; background: none; border: none; }
+  .modal .close:hover { color: var(--text); }
+  .disc-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; }
+  .disc-item .did { font-family: monospace; font-size: 0.82rem; }
+  .disc-item .dmodel { color: var(--muted); font-size: 0.72rem; }
+  .disc-item .dstate { font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; }
+  .disc-item .dstate.online { background: #22c55e22; color: var(--green); }
+  .disc-item .dstate.offline { background: #ef444422; color: var(--red); }
+  .disc-item .dstate.registered { background: #6366f122; color: var(--accent); }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 0.85rem; }
+
+  /* ── Accounts Manager (tags + modal) ── */
+  .acct-tags { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+  .acct-tag { display: inline-flex; align-items: center; gap: 3px; background: var(--accent)15; border: 1px solid var(--accent)33; color: var(--accent); font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 12px; }
+  .acct-tag-primary { background: var(--green)15; border-color: var(--green)33; color: var(--green); }
+  .acct-btn-manage { background: transparent; border: 1px dashed var(--border); color: var(--muted); font-size: 0.65rem; padding: 3px 10px; border-radius: 12px; cursor: pointer; transition: all 0.15s; }
+  .acct-btn-manage:hover { border-color: var(--accent); color: var(--accent); }
+  .acct-modal-bg { position: fixed; inset: 0; background: #000a; z-index: 100; display: flex; align-items: center; justify-content: center; }
+  .acct-modal { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; width: 90%; max-width: 420px; max-height: 80vh; overflow-y: auto; }
+  .acct-modal h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; }
+  .acct-modal .am-device { font-size: 0.7rem; color: var(--muted); font-family: monospace; margin-bottom: 16px; }
+  .acct-modal .am-close { float: right; cursor: pointer; color: var(--muted); font-size: 1.2rem; background: none; border: none; line-height: 1; }
+  .acct-modal .am-close:hover { color: var(--text); }
+  .am-section { margin-bottom: 16px; }
+  .am-section-title { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 8px; }
+  .am-primary-row { display: flex; gap: 8px; align-items: center; }
+  .am-primary-row input { flex: 1; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.82rem; outline: none; }
+  .am-primary-row input:focus { border-color: var(--accent); }
+  .am-account-list { display: flex; flex-direction: column; gap: 6px; }
+  .am-account-item { display: flex; align-items: center; justify-content: space-between; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; gap: 8px; }
+  .am-account-item .am-name { font-size: 0.82rem; font-weight: 600; color: var(--accent); flex: 1; }
+  .am-account-item.archived .am-name { color: var(--muted); text-decoration: line-through; opacity: 0.7; }
+  .am-account-item .am-actions { display: flex; gap: 4px; align-items: center; }
+  .am-account-item .am-archive,
+  .am-account-item .am-unarchive { background: none; border: 1px solid var(--border); color: var(--muted); font-size: 0.65rem; cursor: pointer; padding: 3px 8px; line-height: 1; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.3px; font-weight: 600; }
+  .am-account-item .am-archive:hover { color: var(--text); border-color: var(--text); }
+  .am-account-item .am-unarchive:hover { color: var(--green); border-color: var(--green); }
+  .am-account-item .am-remove { background: none; border: none; color: var(--muted); font-size: 0.9rem; cursor: pointer; padding: 0 4px; line-height: 1; }
+  .am-account-item .am-remove:hover { color: var(--red); }
+  .am-archived-toggle { background: none; border: 1px dashed var(--border); color: var(--muted); padding: 8px 12px; font-size: 0.72rem; cursor: pointer; width: 100%; border-radius: 8px; margin-top: 8px; display: flex; align-items: center; justify-content: space-between; }
+  .am-archived-toggle:hover { color: var(--text); border-color: var(--text); }
+  .am-archived-toggle .am-arrow { transition: transform 0.15s ease; }
+  .am-archived-toggle.expanded .am-arrow { transform: rotate(90deg); }
+  .am-archived-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .am-add-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+  .am-add-row input { flex: 1; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.82rem; outline: none; }
+  .am-add-row input:focus { border-color: var(--accent); }
+  .am-add-row button { background: var(--accent); color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .am-add-row button:hover { opacity: 0.85; }
+  .am-empty { font-size: 0.75rem; color: var(--muted); padding: 8px 0; }
+
+  /* ── Persistent checking state for device groups ── */
+  .device-group.checking { border-color: var(--accent); position: relative; }
+  .device-group.checking .dg-accounts { opacity: 0.55; pointer-events: none; }
+  .device-group.checking .dg-header .btn,
+  .device-group.checking .dg-header .btn-check { pointer-events: none; opacity: 0.4; }
+  .device-group.checking .dg-header .dg-check-status { opacity: 1; }
+  .device-group.checking::after {
+    content: ''; position: absolute; bottom: 0; left: 0; height: 3px; width: 30%;
+    background: var(--accent); border-radius: 2px;
+    animation: loadSlide 1.8s ease-in-out infinite;
+  }
+  @keyframes loadSlide { 0%{left:-30%;} 100%{left:100%;} }
+  .device-group.checking .dg-check-status {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.7rem; color: var(--accent); font-weight: 600;
+  }
+  .device-group:not(.checking) .dg-check-status { display: none; }
+
+  /* ── Device Group (multi-account) ── */
+  .device-group { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
+  .dg-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid var(--border); background: var(--bg); }
+  .dg-header-left { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+  .dg-header-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .dg-device-id { font-family: monospace; font-size: 0.78rem; color: var(--muted); }
+  .dg-device-id-sub { font-family: monospace; font-size: 0.6rem; color: var(--muted); opacity: 0.5; letter-spacing: 0.02em; }
+  .dg-label-input {
+    background: transparent; border: 1px solid transparent; border-radius: 6px;
+    font-size: 0.85rem; color: var(--fg); font-weight: 600; padding: 2px 6px;
+    outline: none; min-width: 80px; max-width: 220px; transition: border-color 0.2s, background 0.2s;
+  }
+  .dg-label-input:not(:placeholder-shown) { color: var(--fg); }
+  .dg-label-input:placeholder-shown { font-size: 0.78rem; font-weight: 500; }
+  .dg-label-input:hover { border-color: var(--border); cursor: text; }
+  .dg-label-input:focus { border-color: var(--accent); background: var(--bg); }
+  .dg-label-input::placeholder { color: var(--muted); font-weight: 500; font-size: 0.78rem; opacity: 0.7; }
+  .dg-account-count { font-size: 0.6rem; color: var(--muted); background: var(--card); padding: 2px 8px; border-radius: 10px; border: 1px solid var(--border); }
+  .dg-controls { display: flex; align-items: center; gap: 8px; padding: 8px 18px; border-bottom: 1px solid var(--border); background: var(--bg); flex-wrap: wrap; }
+  .dg-controls input { font-size: 0.7rem; color: var(--muted); background: transparent; border: 1px solid transparent; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+  .dg-controls input:hover { border-color: var(--border); }
+  .dg-controls input:focus { border-color: var(--accent); outline: none; background: var(--card); color: var(--text); }
+  /* Device-level notes (per-device free-form text) */
+  .dg-notes { padding: 6px 18px 8px; border-bottom: 1px solid var(--border); background: var(--bg); }
+  .dg-notes textarea { width: 100%; min-height: 24px; max-height: 160px; resize: vertical; font-size: 0.74rem; color: var(--text); background: transparent; border: 1px solid transparent; padding: 4px 6px; border-radius: 4px; outline: none; font-family: inherit; line-height: 1.35; }
+  .dg-notes textarea::placeholder { color: var(--muted); }
+  .dg-notes textarea:hover { border-color: var(--border); }
+  .dg-notes textarea:focus { border-color: var(--accent); background: var(--card); }
+  /* Manual review banner — surfaces checkpoint / banned / expired with the
+     action required, alongside the existing account badges. */
+  .dg-review-banner { background: rgba(234,179,8,0.10); border-bottom: 1px solid rgba(234,179,8,0.30); color: var(--yellow); padding: 8px 18px; font-size: 0.78rem; font-weight: 500; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .dg-review-banner .dg-review-icon { font-size: 0.95rem; }
+  .dg-review-banner .dg-review-accts { color: var(--text); font-weight: 400; opacity: 0.85; }
+  .dg-review-banner .dg-review-accts code { background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 3px; font-size: 0.72rem; }
+  .dg-review-banner .dg-review-action { color: var(--text); opacity: 0.7; font-style: italic; font-weight: 400; }
+  .dg-accounts { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 0; }
+  .dg-account-card { padding: 14px 18px 12px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .dg-account-card:last-child { border-right: none; }
+  .toggle-label { display: inline-flex; align-items: center; gap: 4px; }
+  .btn.ghost { background: transparent; border: none; color: var(--muted); padding: 4px 6px; font-size: 0.85rem; }
+  .btn.ghost:hover { color: var(--red); }
+
+  @media (max-width: 820px) { .device-grid { grid-template-columns: 1fr; } .dg-accounts { grid-template-columns: 1fr; } }
+  @media (max-width: 600px) { body { padding: 14px; } .header { flex-direction: column; align-items: flex-start; } .stats { grid-template-columns: repeat(2, 1fr); } .dg-accounts { grid-template-columns: 1fr; } }
+  /* ── Nav bar ── */
+  .topnav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: var(--bg); opacity: 0.97; backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 2px;
+    padding: 0 20px; height: 40px; font-size: 13px;
+  }
+  .topnav a {
+    color: var(--muted); text-decoration: none; padding: 8px 14px;
+    border-radius: 6px; transition: color 0.15s, background 0.15s;
+    font-weight: 500;
+  }
+  .topnav a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+  .topnav a.active { color: var(--accent); background: rgba(99,102,241,0.1); }
+  body { padding-top: 48px; }
+  /* ── Activity indicator ── */
+  .activity-dot { display: none; width: 7px; height: 7px; border-radius: 50%; background: var(--yellow); margin-left: 4px; animation: pulse-dot 1.5s ease-in-out infinite; vertical-align: middle; }
+  .activity-dot.active { display: inline-block; }
+  @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  .activity-banner { display: none; position: fixed; top: 40px; left: 0; right: 0; z-index: 99; background: rgba(234,179,8,0.08); border-bottom: 1px solid rgba(234,179,8,0.18); padding: 5px 20px; font-size: 0.72rem; color: var(--yellow); backdrop-filter: blur(8px); }
+  .activity-banner.visible { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="/" title="Overview &amp; summary of all services">Hub</a>
+  <a href="/growth" title="Follower &amp; views tracking per device">Growth <span class="activity-dot" id="dot-growth"></span></a>
+  <a href="/status" class="active" title="Ban, captcha &amp; account health detection">Status <span class="activity-dot" id="dot-status"></span></a>
+  <a href="/checker" title="Bulk username availability checker">Checker <span class="activity-dot" id="dot-checker"></span></a>
+  <button onclick="toggleTheme()" id="themeToggle" title="Switch light/dark mode" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem;margin-left:auto">🌙</button>
+</nav>
+<script>
+function toggleTheme(){var h=document.documentElement;h.classList.toggle('light');var t=h.classList.contains('light')?'light':'dark';localStorage.setItem('ig_theme',t);document.getElementById('themeToggle').textContent=t==='light'?'🌑':'🌙';}
+(function(){var t=localStorage.getItem('ig_theme');if(t==='light'){document.documentElement.classList.add('light');document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('themeToggle');if(b)b.textContent='🌑';});}})();
+</script>
+<div class="activity-banner" id="activityBanner"></div>
+
+<!-- ── Header ── -->
+<div class="header">
+  <h1><span>IG</span> Account Status</h1>
+  <p style="margin:0;font-size:0.72rem;color:var(--muted);font-weight:400">Ban, captcha &amp; restriction detection — check account health across devices</p>
+  <div class="header-actions">
+    <div class="sched-row">
+      <input type="time" id="schedTime" value="08:00">
+      <button class="btn sm" id="btnSchedStart" onclick="startScheduler()">Start</button>
+      <button class="btn sm outline" id="btnSchedStop" onclick="stopScheduler()" style="display:none">Stop</button>
+      <span class="sched-status" id="schedStatus"></span>
+    </div>
+    <button class="btn success" onclick="forceCheckAll(false)">Check Monitored</button>
+    <button class="btn outline" onclick="forceCheckAll(true)">Check All</button>
+  </div>
+</div>
+
+<!-- ── Health banner ── -->
+<div id="healthBanner" style="display:none;align-items:center;gap:10px;padding:10px 16px;border-radius:10px;margin-bottom:16px;font-size:0.82rem;font-weight:600"></div>
+
+<!-- ── Stats ── -->
+<div class="stats" id="statsRow"></div>
+
+<!-- ── Tabs ── -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('status')">Account Status <span id="tabCountStatus" style="font-size:0.65rem;color:var(--accent);margin-left:2px"></span></button>
+  <button class="tab-btn" onclick="switchTab('history')">History <span id="tabCountHistory" style="font-size:0.65rem;color:var(--muted);margin-left:2px"></span></button>
+</div>
+
+<!-- ── Tab: Account Status (cards with integrated management) ── -->
+<div class="tab-content active" id="tab-status">
+  <div class="section-head">
+    <h2>Devices</h2>
+    <div class="section-actions">
+      <button class="btn sm outline" onclick="refreshAll()">Refresh</button>
+      <button class="btn sm outline" id="adminToggleBtn" onclick="toggleAdminActions()" title="Show admin actions">&#9881; Admin</button>
+      <span id="adminActions" style="display:none;gap:6px" class="section-actions">
+        <button class="btn sm outline" onclick="discoverDevices()">Discover</button>
+        <button class="btn sm outline" onclick="addAllDevices()">+ Add All</button>
+      </span>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+    <input type="text" id="deviceSearch" placeholder="Search by name, username, or status..." oninput="filterDevices()" style="flex:1;min-width:200px;padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.8rem;outline:none">
+    <select id="deviceStateFilter" onchange="filterDevices()" style="padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.78rem">
+      <option value="">All states</option>
+      <option value="active">Active</option>
+      <option value="banned">Banned</option>
+      <option value="checkpoint">Captcha</option>
+      <option value="restricted">Has restrictions</option>
+    </select>
+    <button id="sortIssuesBtn" onclick="toggleSortByIssues()" style="padding:7px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:0.78rem;cursor:pointer;transition:all 0.15s;white-space:nowrap">&#x2195; Issues first</button>
+    <span id="filterCount" style="font-size:0.7rem;color:var(--muted)"></span>
+  </div>
+  <div class="device-grid" id="statusGrid">
+    <div class="empty-state">Loading...</div>
+  </div>
+</div>
+
+<!-- ── Tab: History ── -->
+<div class="tab-content" id="tab-history">
+  <table class="hist-table">
+    <thead id="histThead"><tr><th>Device</th><th>Username</th><th>State</th><th>Duration</th><th>Checked At</th></tr></thead>
+    <tbody id="histTbody"></tbody>
+  </table>
+  <div class="empty-state" id="histEmpty">No history yet.</div>
+</div>
+
+<!-- ── Discover modal ── -->
+<div id="discoverModal" style="display:none"></div>
+
+<script>
+function toggleAdminActions() {
+  var el = document.getElementById('adminActions');
+  var showing = el.style.display === 'flex';
+  el.style.display = showing ? 'none' : 'flex';
+  document.getElementById('adminToggleBtn').style.borderColor = showing ? '' : 'var(--accent)';
+  document.getElementById('adminToggleBtn').style.color = showing ? '' : 'var(--accent)';
+}
+function toggleWorkerSection(header, key) {
+  header.classList.toggle('collapsed');
+  var body = header.nextElementSibling;
+  if (body) body.classList.toggle('collapsed');
+  localStorage.setItem(key, header.classList.contains('collapsed') ? '1' : '0');
+}
+const API = '/api/v1/status';
+const API_KEY = localStorage.getItem('ig_api_key') || '';
+if (!API_KEY) fetch(API+'/devices',{signal:AbortSignal.timeout(15000)}).then(r=>{if(r.status===401)window.location='/';}).catch(()=>{});
+
+// ── Sort by issues ──
+var _sortByIssues = localStorage.getItem('status_sort_issues') === '1';
+
+function _deviceSeverity(did) {
+  var statuses = _statusByDevice[did] || [];
+  var worst = 0;
+  statuses.forEach(function(s) {
+    var st = (s.account_state || '').toLowerCase();
+    if (st === 'banned' || st === 'suspended') worst = Math.max(worst, 4);
+    else if (st === 'checkpoint' || st === 'challenge') worst = Math.max(worst, 3);
+    else {
+      var secs = s.sections || {};
+      var hasProblem = Object.values(secs).some(function(v) { return v && v.status === 'problem'; });
+      if (hasProblem) worst = Math.max(worst, 2);
+      else if (st === 'expired') worst = Math.max(worst, 1);
+    }
+  });
+  return worst;
+}
+
+function toggleSortByIssues() {
+  _sortByIssues = !_sortByIssues;
+  localStorage.setItem('status_sort_issues', _sortByIssues ? '1' : '0');
+  var btn = document.getElementById('sortIssuesBtn');
+  btn.style.borderColor = _sortByIssues ? 'var(--accent)' : '';
+  btn.style.color = _sortByIssues ? 'var(--accent)' : '';
+  renderGrid();
+  filterDevices();
+}
+
+// Apply saved sort state on load
+(function() {
+  if (_sortByIssues) {
+    var btn = document.getElementById('sortIssuesBtn');
+    if (btn) { btn.style.borderColor = 'var(--accent)'; btn.style.color = 'var(--accent)'; }
+  }
+})();
+
+// ── Helpers ──
+function timeAgo(iso) {
+  if (!iso) return '-';
+  let d; if (iso.endsWith('Z') || iso.includes('+')) d = new Date(iso); else d = new Date(iso+'Z');
+  if (isNaN(d.getTime())) return '-';
+  const s = (Date.now()-d.getTime())/1000;
+  if (s < 60) return 'just now'; if (s < 3600) return Math.floor(s/60)+'m ago';
+  if (s < 86400) return Math.floor(s/3600)+'h ago'; return Math.floor(s/86400)+'d ago';
+}
+function shortId(id) { return id && id.length > 14 ? id.slice(0,12)+'…' : id; }
+function cssId(s) { return (s||'').replace(/[^a-zA-Z0-9]/g,'_'); }
+function escHtml(s) { const d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; }
+function sectionLabel(key) {
+  const m = { content_removed:'Content', underage_visibility:'Under 18', restricted_features:'Features', limits_to_reach:'Reach', monetization:'Monetize' };
+  return m[key] || key.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()).substring(0,14);
+}
+
+async function api(path, opts={}) {
+  const headers = opts.headers || {};
+  if (API_KEY) headers['X-API-Key'] = API_KEY;
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=>ctrl.abort(), 300000);
+  try {
+    const res = await fetch(API+path, {...opts, headers, signal: ctrl.signal});
+    clearTimeout(timer);
+    if (!res.ok) throw new Error(res.status+' '+res.statusText);
+    return await res.json();
+  } catch(e) { clearTimeout(timer); throw e; }
+}
+function toast(msg, type='ok') {
+  const el = document.createElement('div'); el.className='toast '+type; el.textContent=msg;
+  document.body.appendChild(el); setTimeout(()=>el.remove(), 3000);
+}
+function showLoading(msg='Loading...') {
+  let el = document.getElementById('loadingOverlay');
+  if (!el) { el = document.createElement('div'); el.id='loadingOverlay'; el.className='loading-overlay'; document.body.appendChild(el); }
+  el.innerHTML=`<div class="loading-box"><div class="ld-spinner"></div><div class="ld-text">${msg}</div></div>`; el.style.display='flex';
+}
+function hideLoading() { const el=document.getElementById('loadingOverlay'); if(el) el.style.display='none'; }
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(p=>p.classList.remove('active'));
+  document.querySelector(`.tab-btn[onclick*="${name}"]`).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+let _devices = [];
+let _statusByDevice = {};  // device_id → [status accounts]
+
+// ── State badge ──
+function stateBadge(state) {
+  const cls = { active:'active', banned:'banned', checkpoint:'checkpoint', expired:'expired', unknown:'unknown' };
+  const displayName = { active:'active', banned:'banned', checkpoint:'captcha', expired:'expired' };
+  return `<span class="badge ${cls[state]||'unknown'}">${displayName[state]||state||'unknown'}</span>`;
+}
+
+// ── Fetch devices (populate _devices, no render) ──
+async function fetchDevices() {
+  try {
+    const data = await api('/devices/discover');
+    const { online_registered=[], offline_registered=[], unregistered=[] } = data;
+    _devices = [...online_registered, ...offline_registered];
+    _devices._unregistered = unregistered;
+    window._statusDevices = _devices;  // expose for deviceLabel()
+  } catch(e) { console.error(e); }
+}
+
+// ── Fetch status data ──
+async function fetchStatus() {
+  try {
+    const data = await api('/status/latest');
+    const accounts = data.accounts || data.statuses || data.results || [];
+    _statusByDevice = {};
+    accounts.forEach(a => {
+      const did = a.device_id || '?';
+      if (!_statusByDevice[did]) _statusByDevice[did] = [];
+      _statusByDevice[did].push(a);
+    });
+    return accounts;
+  } catch(e) { console.error(e); return []; }
+}
+
+// ── Render merged grid (devices + status) ──
+function renderGrid() {
+  const grid = document.getElementById('statusGrid');
+
+  // Build ordered list: all registered devices, plus any device_ids in status that aren't in _devices
+  const deviceMap = {};
+  const deviceOrder = [];
+  _devices.forEach(d => { deviceMap[d.device_id] = d; deviceOrder.push(d.device_id); });
+  // Only show devices that are registered (in _devices).
+  // Status data for removed devices is ignored.
+
+  if (!deviceOrder.length) {
+    grid.innerHTML = '<div class="empty-state">No devices registered — click <b>Discover</b> to see connected devices or <b>+ Add All</b> to register them</div>';
+    renderStats([]);
+    return;
+  }
+
+  // Collect all status accounts for stats
+  const allAccounts = [];
+  Object.values(_statusByDevice).forEach(arr => allAccounts.push(...arr));
+  renderStats(allAccounts);
+
+  // Separate local and remote devices
+  let localOrder = deviceOrder.filter(did => !(deviceMap[did]||{})._remote);
+  const remoteDevs = deviceOrder.filter(did => (deviceMap[did]||{})._remote);
+
+  // Sort by issues if enabled
+  if (_sortByIssues) {
+    localOrder.sort(function(a, b) {
+      return _deviceSeverity(b) - _deviceSeverity(a);
+    });
+  }
+
+  // Group remote by worker
+  const remoteByWorker = {};
+  for (const did of remoteDevs) {
+    const wid = (deviceMap[did]||{})._worker_id || 'unknown';
+    if (!remoteByWorker[wid]) remoteByWorker[wid] = [];
+    remoteByWorker[wid].push(did);
+  }
+
+  // Build collapsible sections
+  var html = '';
+  if (localOrder.length) {
+    var lcKey = 'collapse_status_local';
+    var lcCollapsed = localStorage.getItem(lcKey) === '1';
+    html += `<div class="worker-section-header local-worker${lcCollapsed?' collapsed':''}" onclick="toggleWorkerSection(this,'${lcKey}')">
+      <span class="ws-arrow">▼</span>
+      <h3>Local</h3>
+      <span class="worker-badge local">this machine</span>
+      <span style="font-size:0.68rem;color:var(--muted)">${localOrder.length} device${localOrder.length!==1?'s':''}</span>
+    </div>`;
+    html += `<div class="worker-section-body${lcCollapsed?' collapsed':''}" data-section="${lcKey}">`;
+    html += localOrder.map(did => renderStatusCard(did, deviceMap[did]||{}, false)).join('');
+    html += '</div>';
+  }
+  html += Object.entries(remoteByWorker).map(([wid, dids]) => {
+    var wKey = 'collapse_status_' + wid;
+    var wCollapsed = localStorage.getItem(wKey) === '1';
+    return `<div class="worker-section-header${wCollapsed?' collapsed':''}" onclick="toggleWorkerSection(this,'${wKey}')">
+      <span class="ws-arrow">▼</span>
+      <h3>Remote Worker</h3>
+      <span class="worker-badge remote">${wid}</span>
+      <span style="font-size:0.68rem;color:var(--muted)">${dids.length} device${dids.length!==1?'s':''}</span>
+    </div>`
+    + `<div class="worker-section-body${wCollapsed?' collapsed':''}" data-section="${wKey}">`
+    + dids.map(did => renderStatusCard(did, deviceMap[did]||{}, true)).join('')
+    + '</div>';
+  }).join('');
+  grid.innerHTML = html;
+}
+
+function renderStatusCard(did, dev, isRemote) {
+    const statusAccts = _statusByDevice[did] || [];
+    const cid = cssId(did);
+    const en = dev.enabled ? 'checked' : '';
+    const mon = dev.monitored ? 'checked' : '';
+    const stateColor = dev.state === 'online' ? 'green' : dev.state ? 'red' : 'muted';
+    const uList = (dev.usernames || []).map(u => typeof u === 'string' ? {username:u,enabled:true} : u);
+    const acctCount = uList.length || 1;
+    const remoteCls = isRemote ? ' remote-device' : '';
+
+    const labelAttr = 'onblur="saveLabel(\''+did+'\',this.value)" onkeydown="if(event.key===\'Enter\')this.blur()"';
+    var devIdx = _devices.indexOf(dev) + 1;
+    var friendlyPlaceholder = 'Device ' + devIdx + ' — click to name';
+
+    // ── Header ──
+    let html = '<div class="device-group'+remoteCls+'" id="dc-'+cid+'" data-device-id="'+did+'">'
+      + '<div class="dg-header">'
+      + '<div class="dg-header-left">'
+      + '<input class="dg-label-input" value="'+(dev.label||'')+'" placeholder="'+friendlyPlaceholder+'" '+labelAttr+'>'
+      + '<span class="dg-device-id-sub" title="Serial: '+did+'">SN '+shortId(did)+'</span>'
+      + '<span class="dg-account-count">'+acctCount+' account'+(acctCount!==1?'s':'')+'</span>';
+
+    if (dev.state) {
+      html += '<span class="badge" style="color:var(--'+stateColor+'); background:var(--'+stateColor+')18; border:1px solid var(--'+stateColor+')33">'+dev.state+'</span>';
+    }
+
+    html += '</div><div class="dg-header-right">';
+
+    html += '<span class="toggle-label"><span class="tl-text">Enabled</span><label class="toggle" title="Include this device in scheduled checks"><input type="checkbox" '+en+' onchange="toggleEn(\''+did+'\',this)"><span class="sl"></span></label></span>'
+      + '<span class="toggle-label"><span class="tl-text">Monitor</span><label class="toggle" title="Track account status for this device" '+((!dev.enabled)?'style="opacity:0.3"':'')+'><input type="checkbox" '+mon+' '+(!dev.enabled?'disabled':'')+' onchange="toggleMon(\''+did+'\',this)"><span class="sl"></span></label></span>';
+
+    html += '<span class="dg-check-status"><span class="btn-spinner"></span> Checking…</span>'
+      + '<button class="btn sm btn-check" onclick="forceCheckSingle(\''+did+'\',this)">Check</button>';
+
+    if (!isRemote) {
+      html += '<button class="btn sm ghost" onclick="deleteDevice(\''+did+'\')" title="Remove">&#10005;</button>';
+    }
+
+    html += '</div></div>';
+
+    // ── Controls row (usernames + manage) ──
+    var uTags = '';
+    uList.forEach(function(u) {
+      var cls = !u.enabled ? ' acct-disabled' : '';
+      var sty = !u.enabled ? ';opacity:0.4;text-decoration:line-through' : '';
+      var ttl = u.enabled ? 'Enabled — click to disable' : 'Disabled — click to enable';
+      var star = u.username===dev.username ? ' ★' : '';
+      uTags += '<span class="acct-tag'+cls+'" onclick="toggleAccount(\''+did+'\',\''+u.username+'\','+(!u.enabled)+')" title="'+ttl+'" style="cursor:pointer'+sty+'">@'+u.username+star+'</span>';
+    });
+    html += '<div class="dg-controls">'
+      + '<div class="acct-tags">' + uTags
+      + '<button class="acct-btn-manage" onclick="openAccountsModal(\''+did+'\')">Manage</button>'
+      + '</div>';
+    if (!isRemote) {
+      html += '<input style="flex:1;min-width:180px" value="'+(dev.proxy_rotate_url||'')+'" onblur="updateField(\''+did+'\',\'proxy_rotate_url\',this.value)" onkeydown="if(event.key===\'Enter\')this.blur()" placeholder="🔄 proxy rotate URL">';
+    }
+    html += '</div>';
+
+    // ── Device-level notes ──
+    var notesVal = dev.notes || '';
+    html += '<div class="dg-notes">'
+      + '<textarea placeholder="📝 Notes about this device — only visible here, not synced anywhere else" '
+      + 'onblur="updateField(\''+did+'\',\'notes\',this.value)" '
+      + 'onkeydown="if(event.key===\'Enter\'&amp;&amp;event.ctrlKey)this.blur()">' + escHtml(notesVal) + '</textarea>'
+      + '</div>';
+
+    // ── Account status cards ──
+    // Filter: only show results for usernames currently registered on this device
+    const knownUsers = new Set(uList.map(u => u.username.toLowerCase()));
+    const filteredAccts = statusAccts.filter(a => a.username && knownUsers.has(a.username.toLowerCase()));
+
+    // ── Manual-review banner ──
+    // Any account in checkpoint / banned / expired => surface a clear,
+    // actionable banner with the recommended next step. Complements the
+    // small per-account badges below (which stay for at-a-glance scanning).
+    var _stateAction = {
+      checkpoint: 'enter verification code on the phone',
+      expired:    're-login required on the phone',
+      banned:     'account disabled by Instagram',
+    };
+    var flagged = filteredAccts.filter(function(a){
+      var s = (a && a.account_state) || '';
+      return s === 'checkpoint' || s === 'banned' || s === 'expired';
+    }).map(function(a){
+      return { state: a.account_state, who: (a.username || '?').replace(/^@/, '') };
+    });
+    if (flagged.length) {
+      var pillStr = flagged.map(function(f){
+        var action = _stateAction[f.state] || 'manual review required';
+        return '<code>@' + escHtml(f.who) + '</code> in ' + escHtml(f.state)
+             + ' — <span class="dg-review-action">' + escHtml(action) + '</span>';
+      }).join('<br>');
+      html += '<div class="dg-review-banner">'
+        + '<span class="dg-review-icon">⚠️</span>'
+        + '<span>Manual review needed</span>'
+        + '<span class="dg-review-accts">' + pillStr + '</span>'
+        + '</div>';
+    }
+
+    if (filteredAccts.length === 0) {
+      html += `<div class="dg-accounts"><div class="dg-account-card">
+        <div style="color:var(--muted);font-size:0.78rem;padding:6px 0">No status data yet — run a check</div>
+      </div></div>`;
+    } else {
+      html += '<div class="dg-accounts">';
+      filteredAccts.forEach(a => {
+        const user = '@'+a.username;
+        const state = a.account_state||'unknown';
+        const ago = timeAgo(a.checked_at);
+        const sections = a.sections||{};
+        const proxy = a.proxy||{};
+
+        let secHtml = '';
+        Object.entries(sections).forEach(([k,v]) => {
+          if (!v || typeof v !== 'object') return;
+          const s = v.status||'unknown';
+          const icon = s==='ok' ? '✅' : s==='problem' ? '🚨' : '❓';
+          const cls = s==='problem' ? 'problem' : s==='ok' ? 'ok' : '';
+          if (state !== 'active') {
+            secHtml += `<div class="dc-sec"><div class="sec-icon">—</div><div class="sec-label">${sectionLabel(k)}</div></div>`;
+          } else {
+            secHtml += `<div class="dc-sec ${cls}"><div class="sec-icon">${icon}</div><div class="sec-label">${sectionLabel(k)}</div></div>`;
+          }
+        });
+
+        let proxyHtml = '';
+        if (proxy.start || proxy.stop) {
+          const ps = proxy.start||{};
+          const ok = ps.success !== false;
+          proxyHtml = `<div class="dc-proxy">Proxy: <span class="proxy-badge ${ok?'ok':'fail'}">${ps.state||'—'}</span></div>`;
+        }
+
+        let errHtml = '';
+        if (a.error) errHtml = `<div style="font-size:0.72rem;color:var(--red);margin-bottom:8px;word-break:break-word">${a.error.substring(0,150)}</div>`;
+
+        html += `<div class="dg-account-card">
+          <div class="dc-top">
+            <div class="dc-info">
+              <div class="dc-username" style="color:var(--accent);font-weight:700">${user}</div>
+            </div>
+            <div class="dc-badges">${stateBadge(state)}</div>
+          </div>
+          ${secHtml ? `<div class="dc-sections">${secHtml}</div>` : ''}
+          ${proxyHtml}
+          ${errHtml}
+          <div class="dc-foot">
+            <div class="dc-meta">${ago}</div>
+          </div>
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    html += '</div>';
+    return html;
+}
+
+function renderStats(accounts) {
+  let active=0, banned=0, checkpoint=0, expired=0, restrictions=0;
+  let lastCheck = null;
+  let restrictedAccounts = new Set();
+  accounts.forEach(a => {
+    const st = a.account_state||'unknown';
+    if (st==='active') active++; else if (st==='banned') banned++;
+    else if (st==='checkpoint') checkpoint++; else if (st==='expired') expired++;
+    const secs = a.sections||{};
+    let hasRestriction = false;
+    Object.entries(secs).forEach(([k,v]) => { if (v && v.status==='problem') { restrictions++; hasRestriction=true; } });
+    if (hasRestriction) restrictedAccounts.add(a.username||a.device_id);
+    if (a.checked_at) {
+      var ts = a.checked_at;
+      if (typeof ts === 'string' && ts.length > 0) {
+        if (!ts.endsWith('Z') && !ts.includes('+')) ts += 'Z';
+        var d = new Date(ts);
+        if (!isNaN(d.getTime()) && (!lastCheck || d > lastCheck)) lastCheck = d;
+      }
+    }
+  });
+  // Freshness
+  var lcText = 'never', lcClass = 'muted';
+  if (lastCheck && !isNaN(lastCheck.getTime())) {
+    var ago = (Date.now() - lastCheck.getTime())/1000;
+    if (ago < 0) ago = 0;
+    lcText = ago < 60 ? 'just now' : ago < 3600 ? Math.floor(ago/60)+'m ago' : ago < 86400 ? Math.floor(ago/3600)+'h ago' : Math.floor(ago/86400)+'d ago';
+    lcClass = ago < 3600 ? 'green' : ago < 21600 ? 'yellow' : 'red';
+  }
+  var restrictedCount = restrictedAccounts.size;
+  // Tab counter
+  var tcs = document.getElementById('tabCountStatus');
+  if (tcs) tcs.textContent = accounts.length ? '('+accounts.length+')' : '';
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat"><div class="label">Devices</div><div class="val blue">${_devices.length}</div></div>
+    <div class="stat"><div class="label">Active</div><div class="val green">${active}</div></div>
+    <div class="stat"><div class="label">Banned</div><div class="val red">${banned}</div></div>
+    <div class="stat"><div class="label">Captcha</div><div class="val yellow">${checkpoint}</div></div>
+    <div class="stat"><div class="label">Restricted</div><div class="val ${restrictedCount?'red':'muted'}">${restrictedCount}</div></div>
+    <div class="stat"><div class="label">Last Check</div><div class="val ${lcClass}">${lcText}</div></div>
+  `;
+
+  // Health banner
+  var hb = document.getElementById('healthBanner');
+  var issues = banned + checkpoint;
+  if (accounts.length > 0) {
+    hb.style.display = 'flex';
+    if (issues === 0 && restrictedCount === 0) {
+      hb.style.background = 'rgba(34,197,94,0.08)'; hb.style.border = '1px solid rgba(34,197,94,0.25)'; hb.style.color = 'var(--green)';
+      hb.innerHTML = '<span style="font-size:1.2rem">✅</span> All '+active+' accounts healthy';
+    } else if (banned > 0) {
+      hb.style.background = 'rgba(239,68,68,0.08)'; hb.style.border = '1px solid rgba(239,68,68,0.25)'; hb.style.color = 'var(--red)';
+      var parts = [];
+      if (banned > 0) parts.push(banned+' banned');
+      if (checkpoint > 0) parts.push(checkpoint+' need captcha');
+      if (restrictedCount > 0) parts.push(restrictedCount+' with restrictions');
+      hb.innerHTML = '<span style="font-size:1.2rem">⚠️</span> '+parts.join(', ')+' — needs attention';
+    } else {
+      hb.style.background = 'rgba(234,179,8,0.08)'; hb.style.border = '1px solid rgba(234,179,8,0.25)'; hb.style.color = 'var(--yellow)';
+      var parts = [];
+      if (checkpoint > 0) parts.push(checkpoint+' need captcha');
+      if (restrictedCount > 0) parts.push(restrictedCount+' account'+(restrictedCount!==1?'s':'')+' with restrictions');
+      hb.innerHTML = '<span style="font-size:1.2rem">⚠️</span> '+parts.join(', ');
+    }
+  }
+}
+
+// ── Load History ──
+async function loadHistory() {
+  try {
+    const data = await api('/history?limit=50');
+    const tbody = document.getElementById('histTbody');
+    const thead = document.getElementById('histThead');
+    const empty = document.getElementById('histEmpty');
+    const records = data.records || data.history || data.results || [];
+    var tch = document.getElementById('tabCountHistory');
+    if (tch) tch.textContent = records.length ? '('+records.length+')' : '';
+    if (!records.length) { tbody.innerHTML=''; empty.style.display='block'; return; }
+    empty.style.display='none';
+
+    // Collect section keys
+    const secKeys = new Set();
+    const secLabels = {};
+    records.forEach(r => { const s=r.summary||{}; Object.keys(s).forEach(k => { secKeys.add(k); if(s[k]&&s[k].label) secLabels[k]=s[k].label; }); });
+    const keys = [...secKeys];
+
+    thead.innerHTML = `<tr><th>Device</th><th>Username</th><th>State</th>
+      ${keys.map(k=>`<th>${sectionLabel(k)}</th>`).join('')}
+      <th>Duration</th><th>Checked</th></tr>`;
+
+    tbody.innerHTML = records.map(r => {
+      const s = r.summary||{};
+      const state = r.account_state||'unknown';
+      const secCells = keys.map(k => {
+        if (state !== 'active') return '<td style="color:var(--muted)">—</td>';
+        const st = (s[k]||{}).status||'unknown';
+        const icon = st==='ok' ? '✅' : st==='problem' ? '🚨' : '❓';
+        return `<td>${icon}</td>`;
+      }).join('');
+      return `<tr>
+        <td><code>${shortId(r.device_id)}</code></td>
+        <td>${r.username||'—'}</td>
+        <td>${stateBadge(state)}</td>
+        ${secCells}
+        <td>${r.duration_ms ? (r.duration_ms/1000).toFixed(1)+'s' : '—'}</td>
+        <td>${timeAgo(r.checked_at)}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) { console.error(e); }
+}
+
+// ── Scheduler ──
+async function loadScheduler() {
+  try {
+    const d = await api('/scheduler/status');
+    const running = d.running;
+    document.getElementById('schedStatus').textContent = running ? `ON · ${d.daily_time||'?'} · Next: ${timeAgo(d.next_run)}` : 'OFF';
+    document.getElementById('schedStatus').style.color = running ? 'var(--green)' : 'var(--muted)';
+    if (d.daily_time) document.getElementById('schedTime').value = d.daily_time;
+    document.getElementById('btnSchedStart').style.display = running ? 'none' : '';
+    document.getElementById('btnSchedStop').style.display = running ? '' : 'none';
+  } catch(e) {}
+}
+async function startScheduler() {
+  const t = document.getElementById('schedTime').value;
+  let qs = ''; if (t) { const [h,m]=t.split(':').map(Number); qs=`?hour=${h}&minute=${m}`; }
+  try { await api('/scheduler/start'+qs,{method:'POST'}); toast('Scheduler started'); await loadScheduler(); } catch(e) { toast('Failed','err'); }
+}
+async function stopScheduler() {
+  try { await api('/scheduler/stop',{method:'POST'}); toast('Scheduler stopped'); await loadScheduler(); } catch(e) { toast('Failed','err'); }
+}
+
+// ── Persistent checking state ──
+const _activeCheckingDevices = new Set();
+
+function _reapplyCheckingState() {
+  document.querySelectorAll('.device-group[data-device-id]').forEach(function(el) {
+    if (_activeCheckingDevices.has(el.dataset.deviceId)) el.classList.add('checking');
+  });
+}
+
+// ── Force check ──
+async function forceCheckAll(allEnabled) {
+  try {
+    const qs = allEnabled ? 'all_enabled=true&background=true' : 'background=true';
+    await api('/check/force?'+qs, {method:'POST'});
+    toast('Check started — monitoring progress…');
+    // Activity poller will drive .checking state on device groups
+  } catch(e) { toast('Check failed','err'); }
+}
+async function forceCheckSingle(did, btn) {
+  btn.disabled=true; btn.innerHTML='<span class="btn-spinner"></span>';
+  try {
+    // background=true: backend dispatcha y retorna de inmediato. Evita que el
+    // fetch haga timeout en multi-cuenta lenta y muestre un toast "Failed"
+    // engañoso. El visual lo mantiene pollActivity con la fuente de verdad real.
+    await api(`/check/force/${did}?background=true`,{method:'POST'});
+    // Either local "running" or remote "accepted" — same handling
+    _activeCheckingDevices.add(did);
+    const el = document.getElementById('dc-' + cssId(did));
+    if (el) el.classList.add('checking');
+    toast(`Check started`);
+  } catch(e) {
+    if (e.message && e.message.includes('409')) {
+      _activeCheckingDevices.add(did);
+      const el = document.getElementById('dc-' + cssId(did));
+      if (el) el.classList.add('checking');
+      toast('Check already in progress');
+      return;
+    }
+    toast('Failed','err');
+  }
+  finally { btn.disabled=false; btn.textContent='Check'; }
+}
+
+// ── Device management ──
+async function toggleEn(did, el) {
+  el.disabled=true;
+  try { await api(`/devices/${did}/${el.checked?'enable':'disable'}`,{method:'POST'}); toast(`${shortId(did)} ${el.checked?'enabled':'disabled'}`); await reloadAll(); }
+  catch(e) { el.checked=!el.checked; toast('Failed','err'); } finally { el.disabled=false; }
+}
+async function toggleMon(did, el) {
+  el.disabled=true;
+  try { if(el.checked) await api(`/devices/${did}/monitor`,{method:'POST'}); else await api(`/devices/${did}/monitor`,{method:'DELETE'});
+    toast(`${shortId(did)} ${el.checked?'monitored':'unmonitored'}`); await reloadAll();
+  } catch(e) { el.checked=!el.checked; toast('Failed','err'); } finally { el.disabled=false; }
+}
+async function updateField(did, field, val) {
+  try { await api(`/devices/${did}?${field}=${encodeURIComponent(val)}`,{method:'PUT'}); toast(`Updated ${field}`); }
+  catch(e) { toast('Failed','err'); }
+}
+async function saveLabel(did, value) { await updateField(did, 'label', value.trim()); }
+async function deleteDevice(did) {
+  if (!confirm(`Remove ${did}?`)) return;
+  try { await api(`/devices/${did}`,{method:'DELETE'}); toast('Removed'); await reloadAll(); }
+  catch(e) { toast('Failed','err'); }
+}
+async function addDevice(did, model) {
+  try { await api(`/devices?device_id=${encodeURIComponent(did)}&username=&label=Phone+${encodeURIComponent(model)}&monitored=false`,{method:'POST'}); toast('Added'); await reloadAll(); }
+  catch(e) { toast('Failed','err'); }
+}
+async function discoverDevices() {
+  const modal = document.getElementById('discoverModal');
+  modal.innerHTML='<div class="modal-bg" onclick="if(event.target===this)this.parentElement.style.display=\'none\'"><div class="modal"><button class="close" onclick="this.closest(\'.modal-bg\').parentElement.style.display=\'none\'">×</button><h2>Discover ADB Devices</h2><div style="text-align:center;padding:20px"><span class="btn-spinner" style="width:18px;height:18px;border-width:3px"></span></div></div></div>';
+  modal.style.display='block';
+  try {
+    const data = await api('/devices/discover');
+    const { online_registered=[], offline_registered=[], unregistered=[], summary={} } = data;
+    let html = `<button class="close" onclick="this.closest('.modal-bg').parentElement.style.display='none'">×</button><h2>ADB Devices — ${summary.total_adb||0} found</h2>`;
+    online_registered.forEach(d => { html += `<div class="disc-item"><div><div class="did">${d.device_id}</div><div class="dmodel">${d.model||'?'} · @${d.username||'?'}</div></div><span class="dstate online">Online</span></div>`; });
+    offline_registered.forEach(d => { html += `<div class="disc-item"><div><div class="did">${d.device_id}</div><div class="dmodel">@${d.username||'?'}</div></div><span class="dstate offline">${d.state}</span></div>`; });
+    unregistered.forEach(d => { html += `<div class="disc-item"><div><div class="did">${d.device_id}</div><div class="dmodel">${d.model||'?'}</div></div><button class="btn sm" onclick="addDevice('${d.device_id}','${d.model||'unknown'}');this.closest('.modal-bg').parentElement.style.display='none'">+ Add</button></div>`; });
+    if (!online_registered.length && !offline_registered.length && !unregistered.length) html += '<div class="empty-state">No ADB devices found</div>';
+    modal.querySelector('.modal').innerHTML = html;
+  } catch(e) { modal.querySelector('.modal').innerHTML='<div class="empty-state">Failed to discover devices</div>'; }
+}
+async function addAllDevices() {
+  try {
+    await api('/devices/reload',{method:'POST'});
+    const r = await api('/devices/refresh?auto_add=true',{method:'POST'});
+    const n = (r.new_added||[]).length;
+    toast(n > 0 ? `${n} device(s) added` : 'No new devices');
+    await reloadAll();
+  } catch(e) { toast('Failed','err'); }
+}
+async function refreshAll() {
+  try { await api('/devices/reload',{method:'POST'}); await api('/devices/refresh',{method:'POST'}); toast('Refreshed'); await reloadAll(); }
+  catch(e) { toast('Failed','err'); }
+}
+async function reloadAll() {
+  await Promise.all([fetchDevices(), fetchStatus()]);
+  renderGrid();
+  _reapplyCheckingState();
+}
+
+// ── Accounts Modal ──
+function openAccountsModal(deviceId) {
+  const d = _devices.find(x => x.device_id === deviceId);
+  if (!d) return;
+  const primary = d.username || '';
+  const usernames = (d.usernames || []).map(u => typeof u === 'string' ? {username:u,enabled:true} : {...u});
+
+  let el = document.getElementById('acctModalWrap');
+  if (!el) { el = document.createElement('div'); el.id = 'acctModalWrap'; document.body.appendChild(el); }
+
+  let archivedExpanded = false;
+
+  function render() {
+    const active = usernames.filter(u => u.enabled);
+    const archived = usernames.filter(u => !u.enabled);
+    const archivedSection = archived.length === 0 ? '' : `
+      <button class="am-archived-toggle${archivedExpanded?' expanded':''}" onclick="amToggleArchived()">
+        <span><span class="am-arrow">&#9656;</span> Archived (${archived.length})</span>
+        <span style="font-size:0.62rem;opacity:0.7">${archivedExpanded?'hide':'show'}</span>
+      </button>
+      ${archivedExpanded ? `<div class="am-archived-list">
+        ${archived.map(u => `<div class="am-account-item archived">
+          <span class="am-name">@${u.username}</span>
+          <div class="am-actions">
+            <button class="am-unarchive" onclick="amUnarchiveAccount('${deviceId}','${u.username}')" title="Restore this account">Unarchive</button>
+          </div>
+        </div>`).join('')}
+      </div>` : ''}`;
+
+    el.innerHTML = `<div class="acct-modal-bg" onclick="if(event.target===this)closeAccountsModal()">
+      <div class="acct-modal" onclick="event.stopPropagation()">
+        <button class="am-close" onclick="closeAccountsModal()">&times;</button>
+        <h3>Manage Accounts</h3>
+        <div class="am-device">${deviceId}</div>
+
+        <div class="am-section">
+          <div class="am-section-title">Primary Account</div>
+          <div class="am-primary-row">
+            <input id="am-primary-input" value="${primary}" placeholder="@username">
+            <button class="btn sm" onclick="amSavePrimary('${deviceId}')">Save</button>
+          </div>
+        </div>
+
+        <div class="am-section">
+          <div class="am-section-title">Active accounts (${active.length})</div>
+          <div class="am-account-list">
+            ${active.length === 0 ? '<div class="am-empty">No active accounts</div>' : ''}
+            ${active.map(u => `<div class="am-account-item">
+              <span class="am-name">@${u.username}${u.username === primary ? ' <span style="font-size:0.6rem;color:var(--green);font-weight:400">(primary)</span>' : ''}</span>
+              <div class="am-actions">
+                <button class="am-archive" onclick="amArchiveAccount('${deviceId}','${u.username}')" title="Archive — hide from checks but keep history">Archive</button>
+                <button class="am-remove" onclick="amRemoveAccount('${deviceId}','${u.username}')" title="Remove permanently">&times;</button>
+              </div>
+            </div>`).join('')}
+          </div>
+          <div class="am-add-row">
+            <input id="am-new-input" placeholder="@new_username" onkeydown="if(event.key==='Enter')amAddAccount('${deviceId}')">
+            <button onclick="amAddAccount('${deviceId}')">+ Add</button>
+          </div>
+          ${archivedSection}
+        </div>
+      </div>
+    </div>`;
+    el.style.display = 'block';
+  }
+
+  function toggleArchived() {
+    archivedExpanded = !archivedExpanded;
+    render();
+  }
+
+  el._state = { deviceId, primary, usernames, render, toggleArchived };
+  render();
+}
+
+function amToggleArchived() {
+  const el = document.getElementById('acctModalWrap');
+  if (el && el._state && el._state.toggleArchived) el._state.toggleArchived();
+}
+
+async function amArchiveAccount(deviceId, username) {
+  await api(`/devices/${deviceId}/accounts/${username}/toggle?enabled=false`, {method:'PUT'});
+  const el = document.getElementById('acctModalWrap');
+  if (el && el._state) {
+    const u = el._state.usernames.find(x => x.username === username);
+    if (u) u.enabled = false;
+    el._state.render();
+  }
+  await fetchDevices();
+  renderGrid();
+}
+
+async function amUnarchiveAccount(deviceId, username) {
+  await api(`/devices/${deviceId}/accounts/${username}/toggle?enabled=true`, {method:'PUT'});
+  const el = document.getElementById('acctModalWrap');
+  if (el && el._state) {
+    const u = el._state.usernames.find(x => x.username === username);
+    if (u) u.enabled = true;
+    el._state.render();
+  }
+  await fetchDevices();
+  renderGrid();
+}
+
+function closeAccountsModal() {
+  const el = document.getElementById('acctModalWrap');
+  if (el) { el.style.display = 'none'; el.innerHTML = ''; }
+}
+
+async function amToggleAccount(deviceId, username, enabled) {
+  await api(`/devices/${deviceId}/accounts/${username}/toggle?enabled=${enabled}`, {method:'PUT'});
+  const el = document.getElementById('acctModalWrap');
+  if (el && el._state) {
+    const u = el._state.usernames.find(x => x.username === username);
+    if (u) u.enabled = enabled;
+    el._state.render();
+  }
+  await fetchDevices();
+  renderGrid();
+}
+
+async function toggleAccount(deviceId, username, enabled) {
+  await api(`/devices/${deviceId}/accounts/${username}/toggle?enabled=${enabled}`, {method:'PUT'});
+  await fetchDevices();
+  renderGrid();
+}
+
+async function amSavePrimary(deviceId) {
+  const el = document.getElementById('acctModalWrap');
+  const input = document.getElementById('am-primary-input');
+  const val = (input.value || '').trim().replace(/^@/, '');
+  if (!val) return;
+  await updateField(deviceId, 'username', val);
+  el._state.primary = val;
+  if (!el._state.usernames.find(x => x.username === val)) {
+    el._state.usernames.unshift({username: val, enabled: true});
+    await updateField(deviceId, 'usernames', el._state.usernames.map(x=>x.username).join(','));
+  }
+  await fetchDevices();
+  el._state.render();
+}
+
+async function amAddAccount(deviceId) {
+  const el = document.getElementById('acctModalWrap');
+  const input = document.getElementById('am-new-input');
+  const val = (input.value || '').trim().replace(/^@/, '');
+  if (!val) return;
+  if (el._state.usernames.find(x => x.username === val)) { input.value = ''; return; }
+  el._state.usernames.push({username: val, enabled: true});
+  await updateField(deviceId, 'usernames', el._state.usernames.map(x=>x.username).join(','));
+  await fetchDevices();
+  el._state.render();
+}
+
+async function amRemoveAccount(deviceId, username) {
+  const el = document.getElementById('acctModalWrap');
+  if (!confirm(`Remove @${username} from this device? (Use Archive instead if you want to keep history.)`)) return;
+  const idx = el._state.usernames.findIndex(x => x.username === username);
+  if (idx < 0) return;
+  const removed = el._state.usernames.splice(idx, 1)[0];
+  await updateField(deviceId, 'usernames', el._state.usernames.map(x=>x.username).join(','));
+  // If removed account was the primary, reassign or clear
+  if (removed && removed.username === el._state.primary) {
+    const newPrimary = el._state.usernames.length > 0 ? el._state.usernames[0].username : '';
+    await updateField(deviceId, 'username', newPrimary);
+    el._state.primary = newPrimary;
+  }
+  await fetchDevices();
+  el._state.render();
+}
+
+// -- Init --
+let _initialLoad = true;
+async function loadAll() {
+  if (_initialLoad) showLoading('Connecting...');
+  try { await Promise.all([fetchDevices(), fetchStatus(), loadHistory(), loadScheduler()]); } catch(e) {}
+  renderGrid();
+  _reapplyCheckingState();
+  if (_initialLoad) { hideLoading(); _initialLoad = false; }
+}
+loadAll();
+setInterval(loadAll, 60000);
+
+function deviceLabel(did) {
+  var devs = window._statusDevices||[];
+  var d = devs.find(function(x){return x.device_id===did;});
+  if (d && d.label) return d.label;
+  if (d && d.username) return '@'+d.username;
+  var idx = devs.findIndex(function(x){return x.device_id===did;});
+  if (idx >= 0) return 'Device ' + (idx+1);
+  return did.length > 16 ? did.slice(0,8)+'…' : did;
+}
+
+// -- Device Filter --
+function filterDevices() {
+  var query = (document.getElementById('deviceSearch').value || '').toLowerCase().trim();
+  var stateFilter = document.getElementById('deviceStateFilter').value;
+  var cards = document.querySelectorAll('#statusGrid .device-group');
+  var shown = 0, total = cards.length;
+
+  cards.forEach(function(card) {
+    var did = card.getAttribute('data-device-id') || '';
+    var dev = (_devices || []).find(function(d) { return d.device_id === did; }) || {};
+    var statuses = _statusByDevice[did] || [];
+
+    // Build searchable text: label, device_id, all usernames, all states
+    var searchText = [
+      dev.label || '',
+      did,
+      (dev.usernames || []).map(function(u) { return typeof u === 'string' ? u : u.username || ''; }).join(' '),
+      statuses.map(function(s) { return (s.username || '') + ' ' + (s.account_state || ''); }).join(' ')
+    ].join(' ').toLowerCase();
+
+    // Text match
+    var matchText = !query || searchText.indexOf(query) !== -1;
+
+    // State filter
+    var matchState = true;
+    if (stateFilter === 'restricted') {
+      matchState = statuses.some(function(s) {
+        var secs = s.sections || {};
+        return Object.values(secs).some(function(v) { return v && v.status === 'problem'; });
+      });
+    } else if (stateFilter) {
+      matchState = statuses.some(function(s) { return (s.account_state || '') === stateFilter; });
+    }
+
+    var show = matchText && matchState;
+    card.style.display = show ? '' : 'none';
+    if (show) shown++;
+  });
+
+  // Hide worker sections where no cards match
+  document.querySelectorAll('#statusGrid .worker-section-header').forEach(function(hdr) {
+    var body = hdr.nextElementSibling;
+    if (!body) return;
+    var anyVisible = false;
+    body.querySelectorAll('.device-group').forEach(function(c) {
+      if (c.style.display !== 'none') anyVisible = true;
+    });
+    hdr.style.display = anyVisible ? '' : 'none';
+    body.style.display = anyVisible ? '' : 'none';
+  });
+
+  var fc = document.getElementById('filterCount');
+  if (query || stateFilter) {
+    fc.textContent = shown + ' of ' + total + ' shown';
+  } else {
+    fc.textContent = '';
+  }
+}
+
+// -- Activity Monitor --
+(function(){
+  var _basePad = 48;
+  function pollActivity(){
+    var hdrs = {}; var k = localStorage.getItem('ig_api_key')||'';
+    if(k) hdrs['X-API-Key'] = k;
+    fetch('/api/v1/activity',{headers:hdrs,signal:AbortSignal.timeout(5000)})
+      .then(function(r){ if(r.ok) return r.json(); })
+      .then(function(d){ if(d) updateActivityUI(d); })
+      .catch(function(){});
+  }
+  function fmtActivity(data){
+    var parts = [];
+    if(data.checker && data.checker.active){
+      var c=data.checker; var l='Checker: '+(c.mode==='all'?'all accounts':c.mode==='single'?'single':'manual');
+      if(c.total) l+=' ('+c.completed+'/'+c.total+')';
+      if(c.current) l+=' \u2014 @'+c.current;
+      if(c.trigger==='scheduler') l+=' [sched]';
+      parts.push(l);
+    }
+    if(data.growth && data.growth.active){
+      var g=data.growth; var l='Growth: ';
+      if(g.devices&&g.devices.length){
+        var local=g.devices.filter(function(d){return !d._remote;});
+        var remote=g.devices.filter(function(d){return d._remote;});
+        var labels=[];
+        if(local.length) labels.push(local.map(function(d){return deviceLabel(d.device_id);}).join(', '));
+        if(remote.length) labels.push(remote.map(function(d){return deviceLabel(d.device_id)+' [worker]';}).join(', '));
+        l+=labels.join(', ');
+      } else l+=(g.mode||'checking');
+      parts.push(l);
+    }
+    if(data.status && data.status.active){
+      var s=data.status; var l='Status: ';
+      if(s.devices&&s.devices.length){
+        var local=s.devices.filter(function(d){return !d._remote;});
+        var remote=s.devices.filter(function(d){return d._remote;});
+        var labels=[];
+        if(local.length) labels.push(local.map(function(d){return deviceLabel(d.device_id);}).join(', '));
+        if(remote.length) labels.push(remote.map(function(d){return deviceLabel(d.device_id)+' [worker]';}).join(', '));
+        l+=labels.join(', ');
+      } else l+=(s.mode||'checking');
+      parts.push(l);
+    }
+    return parts;
+  }
+  var _prevStatusActive = false;
+  function updateActivityUI(data){
+    var dotG=document.getElementById('dot-growth'), dotS=document.getElementById('dot-status'), dotC=document.getElementById('dot-checker');
+    var banner=document.getElementById('activityBanner');
+    if(dotG) dotG.classList.toggle('active',!!(data.growth&&data.growth.active));
+    if(dotS) dotS.classList.toggle('active',!!(data.status&&data.status.active));
+    if(dotC) dotC.classList.toggle('active',!!(data.checker&&data.checker.active));
+    var parts=fmtActivity(data);
+    if(parts.length && banner){
+      banner.innerHTML='<span style="font-weight:600">CHECK IN PROGRESS</span> '+parts.join(' &nbsp;|&nbsp; ');
+      banner.classList.add('visible');
+      document.body.style.paddingTop=(_basePad+banner.offsetHeight)+'px';
+    } else if(banner){
+      banner.classList.remove('visible');
+      document.body.style.paddingTop='';
+    }
+    // ── Drive .checking class on device groups from real backend state ──
+    var statusData = data.status || {};
+    _activeCheckingDevices.clear();
+    if(statusData.active && statusData.devices){
+      statusData.devices.forEach(function(d){ _activeCheckingDevices.add(d.device_id); });
+    }
+    document.querySelectorAll('.device-group[data-device-id]').forEach(function(el){
+      el.classList.toggle('checking', _activeCheckingDevices.has(el.dataset.deviceId));
+    });
+    // Reload data when status check just finished
+    var statusActive = !!(statusData.active);
+    if(_prevStatusActive && !statusActive){ _prevStatusActive=false; reloadAll(); }
+    else { _prevStatusActive = statusActive; }
+  }
+  pollActivity(); setInterval(pollActivity,10000);
+})();
+</script>
+</body>
+</html>

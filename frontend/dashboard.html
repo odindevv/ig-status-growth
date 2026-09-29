@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IG Account Checker</title>
+<style>
+  :root {
+    --bg: #0f1117; --card: #1a1d27; --border: #2a2d3a;
+    --fg: #e4e4e7; --text: #e4e4e7; --muted: #71717a;
+    --accent: #6366f1; --accent-glow: rgba(99,102,241,0.15);
+    --green: #22c55e; --red: #ef4444; --yellow: #eab308;
+    --blue: #3b82f6; --orange: #f97316;
+    --purple: #a855f7; --cyan: #06b6d4; --radius: 10px;
+  }
+  html.light {
+    --bg: #f5f5f7; --card: #ffffff; --border: #e0e0e4;
+    --fg: #1a1a1a; --text: #1a1a1a; --muted: #6b7280;
+    --accent: #4f46e5; --accent-glow: rgba(79,70,229,0.12);
+    --green: #16a34a; --red: #dc2626; --yellow: #ca8a04;
+    --blue: #2563eb; --orange: #ea580c;
+    --purple: #7c3aed; --cyan: #0891b2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         background: var(--bg); color: var(--text); min-height: 100vh; }
+  a { color: var(--accent); text-decoration: none; }
+
+  /* ── Header ── */
+  .header { background: var(--card); border-bottom: 1px solid var(--border);
+            padding: 16px 24px; display: flex; align-items: center; gap: 16px; }
+  .header h1 { font-size: 20px; font-weight: 600; flex: 1; }
+  .header .stats { display: flex; gap: 20px; font-size: 13px; color: var(--muted); }
+  .header .stats span { color: var(--text); font-weight: 600; }
+
+  /* ── Tabs ── */
+  .tab-bar { display: flex; gap: 0; padding: 0 24px; background: var(--card);
+             border-bottom: 1px solid var(--border); }
+  .tab-btn { background: none; border: none; color: var(--muted); font-size: 14px;
+             padding: 12px 20px; cursor: pointer; border-bottom: 2px solid transparent;
+             font-weight: 500; transition: all .15s; }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── Global summary ── */
+  .summary-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                 gap: 12px; padding: 16px 24px; }
+  .summary-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+                  padding: 16px; text-align: center; }
+  .summary-card .val { font-size: 28px; font-weight: 700; }
+  .summary-card .lbl { font-size: 12px; color: var(--muted); text-transform: uppercase;
+                       letter-spacing: .5px; margin-top: 4px; }
+  .summary-card .sub { font-size: 13px; margin-top: 4px; font-weight: 600; }
+  .summary-card .sub.up { color: var(--green); }
+  .summary-card .sub.down { color: var(--red); }
+
+  /* ── Top bar ── */
+  .topbar { padding: 16px 24px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .topbar input, .topbar select {
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 12px; color: var(--text); font-size: 14px; outline: none;
+  }
+  .topbar input:focus, .topbar select:focus { border-color: var(--accent); }
+  .topbar input { flex: 1; min-width: 200px; }
+  .btn { background: var(--accent); color: #fff; border: none; border-radius: 6px;
+         padding: 8px 16px; font-size: 14px; font-weight: 500; cursor: pointer;
+         transition: opacity .15s; white-space: nowrap; }
+  .btn:hover { opacity: .85; }
+  .btn.green { background: var(--green); }
+  .btn.red { background: var(--red); }
+  .btn.outline { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn.outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ── Add form ── */
+  .add-bar { padding: 0 24px 12px; display: none; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .add-bar.show { display: flex; }
+  .add-bar input { background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+                   padding: 8px 12px; color: var(--text); font-size: 14px; outline: none; }
+  .add-bar input:focus { border-color: var(--accent); }
+
+  /* ── Cards grid ── */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+          gap: 16px; padding: 0 24px 24px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+          padding: 20px; position: relative; transition: border-color .2s; }
+  .card:hover { border-color: var(--accent); }
+  .card .top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .card .avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--border);
+                  display: flex; align-items: center; justify-content: center; font-size: 18px;
+                  font-weight: 600; color: var(--accent); overflow: hidden; flex-shrink: 0; }
+  .card .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .card .info { flex: 1; min-width: 0; }
+  .card .username { font-weight: 600; font-size: 15px; }
+  .card .label { font-size: 12px; color: var(--muted); }
+  .card .status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .card .status-dot.on { background: var(--green); }
+  .card .status-dot.off { background: var(--muted); }
+
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .metric { text-align: center; }
+  .metric .val { font-size: 20px; font-weight: 700; }
+  .metric .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .metric .delta { font-size: 12px; font-weight: 600; }
+  .metric .delta.up { color: var(--green); }
+  .metric .delta.down { color: var(--red); }
+  .metric .delta.neutral { color: var(--muted); }
+
+  .sparkline { height: 40px; margin-bottom: 12px; }
+  .sparkline canvas { width: 100%; height: 100%; }
+
+  .card .actions { display: flex; gap: 8px; }
+  .card .actions .btn { font-size: 12px; padding: 5px 10px; }
+
+  .card .meta { font-size: 11px; color: #9ca3af; margin-top: 10px; }
+  .card .group-tag { display: inline-block; background: #1c2333; color: var(--purple);
+                     font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
+
+  /* ── Stats tab ── */
+  .stats-section { padding: 0 24px 24px; }
+  .stats-section h3 { font-size: 16px; font-weight: 600; margin: 20px 0 12px; }
+
+  /* Global chart */
+  .global-chart { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+                  padding: 20px; margin-bottom: 20px; }
+  .global-chart canvas { width: 100%; height: 250px; }
+
+  /* Top movers table */
+  .movers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  @media (max-width: 768px) { .movers-grid { grid-template-columns: 1fr; } }
+  .movers-box { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+                padding: 16px; }
+  .movers-box h4 { font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .movers-box .mover-row { display: flex; align-items: center; gap: 10px; padding: 8px 0;
+                           border-bottom: 1px solid var(--border); font-size: 14px; }
+  .movers-box .mover-row:last-child { border-bottom: none; }
+  .mover-rank { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center;
+                justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .mover-rank.gain { background: rgba(63,185,80,.15); color: var(--green); }
+  .mover-rank.loss { background: rgba(248,81,73,.15); color: var(--red); }
+  .mover-user { flex: 1; font-weight: 500; }
+  .mover-delta { font-weight: 700; font-size: 14px; }
+  .mover-delta.up { color: var(--green); }
+  .mover-delta.down { color: var(--red); }
+  .mover-pct { font-size: 12px; color: var(--muted); margin-left: 4px; }
+
+  /* Growth table */
+  .growth-table { width: 100%; border-collapse: collapse; }
+  .growth-table th { text-align: left; font-size: 12px; color: var(--muted); text-transform: uppercase;
+                     letter-spacing: .5px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .growth-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .growth-table tr:hover td { background: rgba(88,166,255,.04); }
+  .growth-table .user-cell { font-weight: 600; }
+  .growth-table .delta-cell { font-weight: 600; }
+  .growth-table .delta-cell.up { color: var(--green); }
+  .growth-table .delta-cell.down { color: var(--red); }
+  .growth-table .delta-cell.neutral { color: var(--muted); }
+
+  /* ── Loading / empty ── */
+  .loading { text-align: center; padding: 60px; color: var(--muted); }
+  .loading .spin { display: inline-block; width: 30px; height: 30px; border: 3px solid var(--border);
+                   border-top-color: var(--accent); border-radius: 50%;
+                   animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .empty { text-align: center; padding: 60px; color: var(--muted); }
+  .empty h3 { margin-bottom: 8px; color: var(--text); }
+
+  /* ── Toast ── */
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--card);
+           border: 1px solid var(--border); border-radius: 8px; padding: 12px 20px;
+           font-size: 14px; z-index: 100; opacity: 0; transform: translateY(10px);
+           transition: all .3s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .toast.error { border-color: var(--red); }
+
+  /* ── Detail overlay ── */
+  .detail-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6);
+                    z-index: 50; justify-content: center; align-items: flex-start;
+                    padding: 40px; overflow-y: auto; }
+  .detail-overlay.show { display: flex; }
+  .detail-panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+                  width: 100%; max-width: 700px; max-height: 85vh; overflow-y: auto; padding: 24px; }
+  .detail-panel h2 { margin-bottom: 6px; }
+  .detail-panel .detail-sub { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+  .detail-panel .detail-metrics { display: grid; grid-template-columns: repeat(3, 1fr);
+                                  gap: 12px; margin-bottom: 20px; }
+  .detail-panel .dm { background: var(--bg); border-radius: 8px; padding: 12px; text-align: center; }
+  .detail-panel .dm .val { font-size: 22px; font-weight: 700; }
+  .detail-panel .dm .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+  .detail-panel .dm .delta { font-size: 13px; font-weight: 600; }
+  .detail-panel .dm .delta.up { color: var(--green); }
+  .detail-panel .dm .delta.down { color: var(--red); }
+  .detail-chart { margin-bottom: 20px; }
+  .detail-chart canvas { width: 100%; height: 200px; }
+  .detail-chart .chart-tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+  .detail-chart .ct { background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+                      padding: 4px 12px; font-size: 12px; color: var(--muted); cursor: pointer; }
+  .detail-chart .ct.active { border-color: var(--accent); color: var(--accent); }
+  .detail-panel .history-row { display: flex; justify-content: space-between; align-items: center;
+                               padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .detail-panel .hr-delta { font-weight: 600; font-size: 12px; }
+  .detail-panel .hr-delta.up { color: var(--green); }
+  .detail-panel .hr-delta.down { color: var(--red); }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── Card loading overlay ── */
+  .card.checking { pointer-events: none; }
+  .card.checking::after {
+    content: ''; position: absolute; inset: 0; background: rgba(13,17,23,.65);
+    border-radius: var(--radius); z-index: 2;
+  }
+  .card .card-loader { display: none; position: absolute; inset: 0; z-index: 3;
+    flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+  .card.checking .card-loader { display: flex; }
+  .card-loader .spin-sm { width: 24px; height: 24px; border: 3px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+  .card-loader .check-label { font-size: 12px; color: var(--accent); font-weight: 500; }
+
+  /* ── Scheduler panel ── */
+  .sched-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+                 padding: 20px; margin: 0 24px 20px; }
+  .sched-panel h3 { font-size: 16px; font-weight: 600; margin-bottom: 14px; display: flex;
+                    align-items: center; gap: 10px; }
+  .sched-status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .sched-status-dot.on { background: var(--green); }
+  .sched-status-dot.off { background: var(--muted); }
+  .sched-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .sched-row label { font-size: 13px; color: var(--muted); }
+  .sched-row input[type="number"] { background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 10px; color: var(--text); font-size: 14px; width: 60px;
+    text-align: center; outline: none; }
+  .sched-row input[type="number"]:focus { border-color: var(--accent); }
+  .sched-info { font-size: 13px; color: var(--muted); margin-top: 12px; }
+  .sched-info span { color: var(--text); font-weight: 500; }
+  .sched-jobs { margin-top: 10px; }
+  .sched-job { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 0;
+               border-bottom: 1px solid var(--border); }
+  .sched-job:last-child { border-bottom: none; }
+  .sched-job .job-name { flex: 1; color: var(--text); }
+  .sched-job .job-next { color: var(--accent); font-weight: 500; }
+
+  /* Proxy error banner */
+  .proxy-error-banner {
+    display: none;
+    background: #2d1015;
+    border: 1px solid #e53e3e;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 12px 16px 0;
+    color: #fc8181;
+    font-size: 14px;
+    align-items: center;
+    gap: 12px;
+  }
+  .proxy-error-banner.show { display: flex; }
+  .proxy-error-banner .peb-icon { font-size: 20px; flex-shrink: 0; }
+  .proxy-error-banner .peb-text { flex: 1; }
+  .proxy-error-banner .peb-text strong { color: #feb2b2; display: block; margin-bottom: 2px; }
+  .proxy-error-banner .peb-text span { color: #fc8181; font-size: 12px; }
+  .proxy-error-banner .peb-dismiss {
+    background: #e53e3e; color: #fff; border: none; border-radius: 6px;
+    padding: 6px 14px; cursor: pointer; font-size: 12px; font-weight: 600;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .proxy-error-banner .peb-dismiss:hover { background: #c53030; }
+  /* ── Nav bar ── */
+  .topnav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: var(--bg); opacity: 0.97; backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 2px;
+    padding: 0 20px; height: 40px; font-size: 13px;
+  }
+  .topnav a {
+    color: var(--muted); text-decoration: none; padding: 8px 14px;
+    border-radius: 6px; transition: color 0.15s, background 0.15s;
+    font-weight: 500;
+  }
+  .topnav a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+  .topnav a.active { color: var(--accent); background: rgba(99,102,241,0.1); }
+  body { padding-top: 48px; }
+  /* ── Activity indicator ── */
+  .activity-dot { display: none; width: 7px; height: 7px; border-radius: 50%; background: var(--yellow); margin-left: 4px; animation: pulse-dot 1.5s ease-in-out infinite; vertical-align: middle; }
+  .activity-dot.active { display: inline-block; }
+  @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  .activity-banner { display: none; position: fixed; top: 40px; left: 0; right: 0; z-index: 99; background: rgba(210,153,34,0.08); border-bottom: 1px solid rgba(210,153,34,0.18); padding: 5px 20px; font-size: 0.72rem; color: var(--yellow); backdrop-filter: blur(8px); }
+  .activity-banner.visible { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="/" title="Overview &amp; summary of all services">Hub</a>
+  <a href="/growth" title="Follower &amp; views tracking per device">Growth <span class="activity-dot" id="dot-growth"></span></a>
+  <a href="/status" title="Ban, captcha &amp; account health detection">Status <span class="activity-dot" id="dot-status"></span></a>
+  <a href="/checker" class="active" title="Bulk username availability checker">Checker <span class="activity-dot" id="dot-checker"></span></a>
+  <button onclick="toggleTheme()" id="themeToggle" title="Switch light/dark mode" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem;margin-left:auto">🌙</button>
+</nav>
+<script>
+function toggleTheme(){var h=document.documentElement;h.classList.toggle('light');var t=h.classList.contains('light')?'light':'dark';localStorage.setItem('ig_theme',t);document.getElementById('themeToggle').textContent=t==='light'?'🌑':'🌙';}
+(function(){var t=localStorage.getItem('ig_theme');if(t==='light'){document.documentElement.classList.add('light');document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('themeToggle');if(b)b.textContent='🌑';});}})();
+</script>
+<div class="activity-banner" id="activityBanner"></div>
+
+<div class="header">
+  <h1>IG Account Checker</h1>
+  <p style="margin:0;font-size:0.72rem;color:var(--muted);font-weight:400">Bulk username availability checker — verify if usernames are taken or available</p>
+  <div class="stats">
+    Accounts: <span id="statTotal">—</span> &nbsp;|&nbsp;
+    Active: <span id="statActive">—</span> &nbsp;|&nbsp;
+    Last check: <span id="statLast">—</span>
+  </div>
+</div>
+
+<div class="proxy-error-banner" id="proxyErrorBanner">
+  <div class="peb-icon">&#9888;</div>
+  <div class="peb-text">
+    <strong>Proxy/VPN Error — Needs Technical Support</strong>
+    <span id="proxyErrorMsg"></span>
+  </div>
+  <button class="peb-dismiss" onclick="dismissProxyError()">Dismiss</button>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('accounts')">Accounts</button>
+  <button class="tab-btn" onclick="switchTab('stats')">Statistics</button>
+  <button class="tab-btn" onclick="switchTab('schedule')">Schedule</button>
+</div>
+
+<!-- ── Summary bar (always visible) ── -->
+<div class="summary-bar" id="summaryBar">
+  <div class="summary-card">
+    <div class="val" id="sumFollowers">—</div>
+    <div class="lbl">Total Followers</div>
+    <div class="sub" id="sumFollowersDelta"></div>
+  </div>
+  <div class="summary-card">
+    <div class="val" id="sumFollowing">—</div>
+    <div class="lbl">Total Following</div>
+    <div class="sub" id="sumFollowingDelta"></div>
+  </div>
+  <div class="summary-card">
+    <div class="val" id="sumPosts">—</div>
+    <div class="lbl">Total Posts</div>
+    <div class="sub" id="sumPostsDelta"></div>
+  </div>
+  <div class="summary-card">
+    <div class="val" id="sumRatio">—</div>
+    <div class="lbl">Avg F/Fg Ratio</div>
+    <div class="sub" id="sumRatioSub" style="color:var(--muted)"></div>
+  </div>
+</div>
+
+<!-- ── Tab: Accounts ── -->
+<div class="tab-content active" id="tab-accounts">
+  <div class="topbar">
+    <input id="searchInput" placeholder="Search accounts..." oninput="filterCards()">
+    <select id="groupFilter" onchange="filterCards()"><option value="">All groups</option></select>
+    <select id="sortFilter" onchange="filterCards()">
+      <option value="alpha">A-Z</option>
+      <option value="followers_desc">Most followers</option>
+      <option value="followers_asc">Least followers</option>
+      <option value="growth_desc">Biggest growth</option>
+      <option value="growth_asc">Biggest drop</option>
+    </select>
+    <button class="btn outline" onclick="toggleAdd()">+ Add</button>
+    <button class="btn green" id="checkAllBtn" onclick="checkAll()">Check All</button>
+    <button class="btn red" onclick="resetAllStats()">Reset All Stats</button>
+  </div>
+
+  <div class="add-bar" id="addBar">
+    <input id="addUser" placeholder="@username" style="width:160px" onkeydown="if(event.key==='Enter')document.getElementById('addLabel').focus()">
+    <input id="addLabel" placeholder="Label (opt)" style="width:140px" onkeydown="if(event.key==='Enter')document.getElementById('addGroup').focus()">
+    <input id="addGroup" placeholder="Group (opt)" style="width:140px" onkeydown="if(event.key==='Enter')addAccount()">
+    <button class="btn" onclick="addAccount()">Add</button>
+    <button class="btn outline" onclick="toggleAdd()">Cancel</button>
+  </div>
+
+  <div id="cardsContent">
+    <div class="loading"><div class="spin"></div><p style="margin-top:12px">Loading...</p></div>
+  </div>
+</div>
+
+<!-- ── Tab: Statistics ── -->
+<div class="tab-content" id="tab-stats">
+  <div class="stats-section">
+
+    <h3>Followers Over Time (All Accounts)</h3>
+    <div class="global-chart">
+      <canvas id="globalChart"></canvas>
+    </div>
+
+    <h3>Top Movers (Last Check)</h3>
+    <div class="movers-grid" id="moversGrid">
+      <div class="movers-box" id="topGainers">
+        <h4><span style="color:var(--green)">&#9650;</span> Top Gainers</h4>
+        <div id="gainersContent"><span style="color:var(--muted);font-size:13px">No data yet</span></div>
+      </div>
+      <div class="movers-box" id="topLosers">
+        <h4><span style="color:var(--red)">&#9660;</span> Top Losers</h4>
+        <div id="losersContent"><span style="color:var(--muted);font-size:13px">No data yet</span></div>
+      </div>
+    </div>
+
+    <h3>All Accounts Growth</h3>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;">
+      <table class="growth-table" id="growthTable">
+        <thead>
+          <tr>
+            <th>Account</th>
+            <th>Followers</th>
+            <th style="cursor:pointer" onclick="sortGrowth('delta_followers')">&#916; Followers</th>
+            <th>Following</th>
+            <th style="cursor:pointer" onclick="sortGrowth('delta_following')">&#916; Following</th>
+            <th>Posts</th>
+            <th style="cursor:pointer" onclick="sortGrowth('delta_posts')">&#916; Posts</th>
+            <th>Last Check</th>
+          </tr>
+        </thead>
+        <tbody id="growthBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab: Schedule ── -->
+<div class="tab-content" id="tab-schedule">
+  <div class="sched-panel">
+    <h3>
+      <span class="sched-status-dot" id="schedDot"></span>
+      Auto Check Schedule
+      <span id="schedStatusLabel" style="font-size:13px;font-weight:400;color:var(--muted)"></span>
+    </h3>
+
+    <div class="sched-row" style="margin-bottom:12px">
+      <label>Daily check at</label>
+      <input type="number" id="schedHour12" min="1" max="12" value="12" placeholder="HH">
+      <span style="color:var(--muted);font-weight:600">:</span>
+      <input type="number" id="schedMin" min="0" max="59" value="0" placeholder="MM">
+      <select id="schedAmPm" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:14px;outline:none;">
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+      </select>
+    </div>
+
+    <div class="sched-row" style="margin-bottom:16px">
+      <label>Also repeat every</label>
+      <select id="schedInterval" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:14px;outline:none;">
+        <option value="0">Off (daily only)</option>
+        <option value="6">6 hours</option>
+        <option value="8">8 hours</option>
+        <option value="12">12 hours</option>
+      </select>
+    </div>
+
+    <div class="sched-row">
+      <button class="btn green" id="schedStartBtn" onclick="schedStart()">Start</button>
+      <button class="btn red" id="schedStopBtn" onclick="schedStop()" style="display:none">Stop</button>
+    </div>
+
+    <div class="sched-info" id="schedInfo"></div>
+    <div class="sched-jobs" id="schedJobs"></div>
+  </div>
+</div>
+
+<!-- ── Detail overlay ── -->
+<div class="detail-overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
+  <div class="detail-panel" id="detailPanel"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/api/v1/checker';
+const API_KEY = localStorage.getItem('ig_api_key') || '';
+if (!API_KEY) fetch(API+'/accounts',{signal:AbortSignal.timeout(15000)}).then(r=>{if(r.status===401)window.location='/';}).catch(()=>{});
+let allAccounts = [];
+let growthData = [];
+let globalHistory = [];
+let historyCache = {};
+let growthSortKey = 'delta_followers';
+let growthSortDesc = true;
+let _checkingUsers = new Set();
+let _checkAllPolling = false;
+
+// ── API helper ──
+async function api(path, opts = {}) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 15000);
+  try {
+    const headers = {...(opts.headers||{})};
+    if (API_KEY) headers['X-API-Key'] = API_KEY;
+    const resp = await fetch(API + path, { ...opts, headers, signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.detail || `HTTP ${resp.status}`);
+    }
+    return resp.json();
+  } catch (e) { clearTimeout(timer); throw e; }
+}
+
+// ── Toast ──
+function toast(msg, isError = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => el.className = 'toast', 3000);
+}
+
+// ── Format helpers ──
+function fmt(n) {
+  if (n == null) return '—';
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+  if (n >= 10_000) return (n / 1_000).toFixed(1) + 'K';
+  return n.toLocaleString();
+}
+function fmtDelta(d) {
+  if (d == null || d === 0) return '';
+  return (d > 0 ? '+' : '') + d.toLocaleString();
+}
+function deltaClass(d) {
+  if (d == null) return '';
+  return d > 0 ? 'up' : d < 0 ? 'down' : 'neutral';
+}
+function timeAgo(iso) {
+  if (!iso) return 'never';
+  const d = new Date(iso + (iso.includes('Z') ? '' : 'Z'));
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  return Math.floor(diff / 86400) + 'd ago';
+}
+
+// ── Tab switching ──
+function switchTab(tab) {
+  const tabs = ['accounts', 'stats', 'schedule'];
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', tabs[i] === tab);
+  });
+  tabs.forEach(t => {
+    const el = document.getElementById('tab-' + t);
+    if (el) el.classList.toggle('active', t === tab);
+  });
+  if (tab === 'stats') loadStats();
+  if (tab === 'schedule') loadSchedulerStatus();
+}
+
+// ── Load all data ──
+async function loadAll() {
+  try {
+    const [acctResp, statsResp, latestResp, growthResp, totalsResp, checkStatus] = await Promise.all([
+      api('/accounts'),
+      api('/stats'),
+      api('/history'),
+      api('/stats/growth'),
+      api('/stats/totals'),
+      api('/check/status'),
+    ]);
+
+    // ── Proxy error banner ──
+    const peb = document.getElementById('proxyErrorBanner');
+    const pem = document.getElementById('proxyErrorMsg');
+    if (checkStatus.proxy_error) {
+      pem.textContent = (checkStatus.proxy_error_message || 'Unknown error') +
+        (checkStatus.proxy_error_at ? ' — ' + new Date(checkStatus.proxy_error_at + 'Z').toLocaleString() : '');
+      peb.classList.add('show');
+    } else {
+      peb.classList.remove('show');
+    }
+
+    // If a check is running (scheduler or manual) and we're not already polling, start polling
+    if (checkStatus.running && !_checkAllPolling) {
+      _checkAllPolling = true;
+      // Only mark the accounts the backend is actually checking (not all enabled)
+      const activeUsers = checkStatus.active_usernames || [];
+      const queuedUsers = checkStatus.queued || [];
+      [...activeUsers, ...queuedUsers].forEach(u => _checkingUsers.add(u));
+      document.getElementById('checkAllBtn').disabled = true;
+      document.getElementById('checkAllBtn').textContent = 'Running...';
+      const poll = setInterval(async () => {
+        try {
+          const s = await api('/check/status');
+          if (!s.running) {
+            clearInterval(poll);
+            _checkingUsers.clear();
+            _checkAllPolling = false;
+            historyCache = {};
+            await loadAll();
+            document.getElementById('checkAllBtn').disabled = false;
+            document.getElementById('checkAllBtn').textContent = 'Check All';
+            toast('Check complete');
+          } else {
+            // Sync _checkingUsers with what the backend reports
+            _checkingUsers.clear();
+            (s.active_usernames || []).forEach(u => _checkingUsers.add(u));
+            (s.queued || []).forEach(u => _checkingUsers.add(u));
+
+            // Refresh to clear finished cards and update their data
+            const lr = await api('/history');
+            const nl = {};
+            for (const h of (lr.latest || [])) nl[h.username] = h;
+            for (const u of [..._checkingUsers]) {
+              const acc = allAccounts.find(a => a.username === u);
+              if (nl[u] && acc && nl[u].checked_at !== acc._checked_at) {
+                _checkingUsers.delete(u);
+                acc.followers = nl[u].followers;
+                acc.following = nl[u].following;
+                acc.posts = nl[u].posts;
+                acc.is_private = !!nl[u].is_private;
+                acc.last_status = nl[u].status || 'ok';
+                acc._checked_at = nl[u].checked_at;
+              }
+            }
+            renderCards();
+          }
+        } catch (e) {
+          clearInterval(poll);
+          _checkingUsers.clear();
+          _checkAllPolling = false;
+          document.getElementById('checkAllBtn').disabled = false;
+          document.getElementById('checkAllBtn').textContent = 'Check All';
+          renderCards();
+        }
+      }, 5000);
+    }
+
+    allAccounts = acctResp.accounts || [];
+    growthData = growthResp.growth || [];
+
+    // Build maps
+    const latestMap = {};
+    for (const h of (latestResp.latest || [])) latestMap[h.username] = h;
+    const growthMap = {};
+    for (const g of growthData) growthMap[g.username] = g;
+
+    // Enrich accounts
+    for (const acc of allAccounts) {
+      const h = latestMap[acc.username] || {};
+      const g = growthMap[acc.username] || {};
+      acc._bio = h.bio || '';
+      acc._full_name = h.full_name || '';
+      acc._profile_pic = h.profile_pic || '';
+      acc._checked_at = h.checked_at || '';
+      acc._delta_followers = g.delta_followers;
+      acc._delta_following = g.delta_following;
+      acc._delta_posts = g.delta_posts;
+      acc._pct_followers = g.pct_followers;
+    }
+
+    // Header stats
+    document.getElementById('statTotal').textContent = statsResp.total_accounts || 0;
+    document.getElementById('statActive').textContent = statsResp.active_accounts || 0;
+    document.getElementById('statLast').textContent = statsResp.last_run ? timeAgo(statsResp.last_run) : 'never';
+
+    // Summary bar
+    const tf = totalsResp.total_followers || 0;
+    const tfg = totalsResp.total_following || 0;
+    const tp = totalsResp.total_posts || 0;
+    document.getElementById('sumFollowers').textContent = fmt(tf);
+    document.getElementById('sumFollowing').textContent = fmt(tfg);
+    document.getElementById('sumPosts').textContent = fmt(tp);
+
+    // Sum deltas
+    let sumDF = 0, sumDFg = 0, sumDP = 0;
+    for (const g of growthData) {
+      sumDF += g.delta_followers || 0;
+      sumDFg += g.delta_following || 0;
+      sumDP += g.delta_posts || 0;
+    }
+    const dfe = document.getElementById('sumFollowersDelta');
+    dfe.textContent = fmtDelta(sumDF);
+    dfe.className = 'sub ' + deltaClass(sumDF);
+    const dfge = document.getElementById('sumFollowingDelta');
+    dfge.textContent = fmtDelta(sumDFg);
+    dfge.className = 'sub ' + deltaClass(sumDFg);
+    const dpe = document.getElementById('sumPostsDelta');
+    dpe.textContent = fmtDelta(sumDP);
+    dpe.className = 'sub ' + deltaClass(sumDP);
+
+    // Ratio
+    const ratio = tfg > 0 ? (tf / tfg).toFixed(2) : '—';
+    document.getElementById('sumRatio').textContent = ratio;
+    document.getElementById('sumRatioSub').textContent =
+      totalsResp.account_count ? `across ${totalsResp.account_count} accounts` : '';
+
+    // Groups filter
+    const groups = [...new Set(allAccounts.map(a => a.group_name).filter(Boolean))];
+    const sel = document.getElementById('groupFilter');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">All groups</option>' +
+      groups.map(g => `<option value="${g}">${g}</option>`).join('');
+    sel.value = cur;
+
+    renderCards();
+  } catch (e) {
+    document.getElementById('cardsContent').innerHTML =
+      `<div class="empty"><h3>Error loading</h3><p>${e.message}</p>
+       <button class="btn" onclick="loadAll()" style="margin-top:12px">Retry</button></div>`;
+  }
+}
+
+// ── Render account cards ──
+function renderCards() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const group = document.getElementById('groupFilter').value;
+  const sort = document.getElementById('sortFilter').value;
+  let filtered = allAccounts;
+  if (search) filtered = filtered.filter(a =>
+    a.username.includes(search) || (a.label || '').toLowerCase().includes(search));
+  if (group) filtered = filtered.filter(a => a.group_name === group);
+
+  // Sort
+  filtered = [...filtered];
+  switch (sort) {
+    case 'followers_desc': filtered.sort((a, b) => (b.followers || 0) - (a.followers || 0)); break;
+    case 'followers_asc': filtered.sort((a, b) => (a.followers || 0) - (b.followers || 0)); break;
+    case 'growth_desc': filtered.sort((a, b) => (b._delta_followers || 0) - (a._delta_followers || 0)); break;
+    case 'growth_asc': filtered.sort((a, b) => (a._delta_followers || 0) - (b._delta_followers || 0)); break;
+    default: filtered.sort((a, b) => a.username.localeCompare(b.username));
+  }
+
+  if (!filtered.length) {
+    document.getElementById('cardsContent').innerHTML = allAccounts.length
+      ? '<div class="empty"><h3>No matches</h3></div>'
+      : `<div class="empty"><h3>No accounts yet</h3><p>Click "+ Add" to get started</p></div>`;
+    return;
+  }
+
+  const html = '<div class="grid">' + filtered.map(a => {
+    const enabled = a.enabled;
+    const avatar = a._profile_pic
+      ? `<img src="${a._profile_pic}" onerror="this.parentNode.textContent='${a.username[0].toUpperCase()}'"/>`
+      : a.username[0].toUpperCase();
+    const groupTag = a.group_name ? `<span class="group-tag">${a.group_name}</span>` : '';
+    const labelText = a.label || a._full_name || '';
+    const df = a._delta_followers;
+    const dfg = a._delta_following;
+    const dp = a._delta_posts;
+
+    const isChecking = _checkingUsers.has(a.username);
+    return `<div class="card${isChecking ? ' checking' : ''}" data-user="${a.username}">
+      <div class="card-loader"><div class="spin-sm"></div><span class="check-label">Checking...</span></div>
+      <div class="top">
+        <div class="avatar">${avatar}</div>
+        <div class="info">
+          <div class="username">@${a.username}${groupTag}</div>
+          <div class="label">${labelText}</div>
+        </div>
+        <div class="status-dot ${enabled ? 'on' : 'off'}" title="${enabled ? 'Enabled' : 'Disabled'}"></div>
+      </div>
+      <div class="metrics">
+        <div class="metric">
+          <div class="val">${fmt(a.followers)}</div>
+          <div class="lbl">Followers</div>
+          <div class="delta ${deltaClass(df)}">${fmtDelta(df)}</div>
+        </div>
+        <div class="metric">
+          <div class="val">${fmt(a.following)}</div>
+          <div class="lbl">Following</div>
+          <div class="delta ${deltaClass(dfg)}">${fmtDelta(dfg)}</div>
+        </div>
+        <div class="metric">
+          <div class="val">${fmt(a.posts)}</div>
+          <div class="lbl">Posts</div>
+          <div class="delta ${deltaClass(dp)}">${fmtDelta(dp)}</div>
+        </div>
+      </div>
+      <div class="sparkline"><canvas id="spark-${a.username}"></canvas></div>
+      <div class="actions">
+        <button class="btn outline" onclick="checkSingle('${a.username}')">Check</button>
+        <button class="btn outline" onclick="showDetail('${a.username}')">History</button>
+        <button class="btn outline" onclick="toggleEnabled('${a.username}', ${enabled ? 0 : 1})">${enabled ? 'Disable' : 'Enable'}</button>
+        <button class="btn outline" onclick="resetStats('${a.username}')">Reset</button>
+        <button class="btn red" style="margin-left:auto" onclick="removeAccount('${a.username}')">Remove</button>
+      </div>
+      <div class="meta">
+        Checked: ${a._checked_at ? timeAgo(a._checked_at) : 'never'}
+        ${a.is_private ? ' · Private' : ''}
+        ${a._pct_followers != null && a._pct_followers !== 0 ? ` · <span class="${deltaClass(a._pct_followers)}" style="font-weight:600">${a._pct_followers > 0 ? '+' : ''}${a._pct_followers}%</span>` : ''}
+      </div>
+    </div>`;
+  }).join('') + '</div>';
+
+  document.getElementById('cardsContent').innerHTML = html;
+  filtered.forEach(a => loadSparkline(a.username));
+}
+
+function filterCards() { renderCards(); }
+
+// ── Sparkline ──
+async function loadSparkline(username) {
+  const canvas = document.getElementById('spark-' + username);
+  if (!canvas) return;
+  try {
+    if (!historyCache[username]) {
+      const resp = await api(`/history/${username}?days=30&limit=30`);
+      historyCache[username] = resp.history;
+    }
+    const data = historyCache[username];
+    if (!data || data.length < 2) return;
+    const points = data.filter(d => d.followers != null).reverse();
+    if (points.length < 2) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.offsetWidth; const h = canvas.offsetHeight;
+    canvas.width = w * 2; canvas.height = h * 2;
+    ctx.scale(2, 2);
+    const vals = points.map(p => p.followers);
+    const min = Math.min(...vals); const max = Math.max(...vals);
+    const range = max - min || 1;
+    // Fill gradient
+    ctx.beginPath();
+    const color = vals[vals.length - 1] >= vals[0] ? '#3fb950' : '#f85149';
+    for (let i = 0; i < vals.length; i++) {
+      const x = (i / (vals.length - 1)) * w;
+      const y = h - ((vals[i] - min) / range) * (h - 4) - 2;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, color + '30');
+    grad.addColorStop(1, color + '05');
+    ctx.fillStyle = grad; ctx.fill();
+    // Line
+    ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+    for (let i = 0; i < vals.length; i++) {
+      const x = (i / (vals.length - 1)) * w;
+      const y = h - ((vals[i] - min) / range) * (h - 4) - 2;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  } catch (e) { /* skip */ }
+}
+
+// ── Stats tab ──
+async function loadStats() {
+  try {
+    const ghResp = await api('/stats/global-history?days=30');
+    globalHistory = ghResp.history || [];
+    drawGlobalChart();
+    renderMovers();
+    renderGrowthTable();
+  } catch (e) {
+    console.error('Stats load error:', e);
+  }
+}
+
+function drawGlobalChart() {
+  const canvas = document.getElementById('globalChart');
+  if (!canvas || !globalHistory.length) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.offsetWidth; const h = 250;
+  canvas.width = w * 2; canvas.height = h * 2;
+  ctx.scale(2, 2);
+  const data = globalHistory;
+  const vals = data.map(d => d.total_followers || 0);
+  const min = Math.min(...vals); const max = Math.max(...vals);
+  const range = max - min || 1;
+  const pad = { top: 20, right: 20, bottom: 30, left: 60 };
+  const cw = w - pad.left - pad.right;
+  const ch = h - pad.top - pad.bottom;
+
+  // Y axis
+  ctx.fillStyle = '#8b949e'; ctx.font = '11px system-ui';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + ch - (i / 4) * ch;
+    const v = min + (i / 4) * range;
+    ctx.fillText(fmt(v), pad.left - 8, y + 4);
+    ctx.beginPath(); ctx.strokeStyle = '#30363d'; ctx.lineWidth = 0.5;
+    ctx.moveTo(pad.left, y); ctx.lineTo(w - pad.right, y); ctx.stroke();
+  }
+
+  // X axis labels
+  ctx.textAlign = 'center';
+  const step = Math.max(1, Math.floor(data.length / 6));
+  for (let i = 0; i < data.length; i += step) {
+    const x = pad.left + (i / (data.length - 1)) * cw;
+    const label = data[i].date ? data[i].date.slice(5) : '';
+    ctx.fillText(label, x, h - 8);
+  }
+
+  // Area fill
+  const color = vals[vals.length - 1] >= vals[0] ? '#3fb950' : '#f85149';
+  ctx.beginPath();
+  for (let i = 0; i < vals.length; i++) {
+    const x = pad.left + (i / (vals.length - 1)) * cw;
+    const y = pad.top + ch - ((vals[i] - min) / range) * ch;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.lineTo(pad.left + cw, pad.top + ch);
+  ctx.lineTo(pad.left, pad.top + ch);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + ch);
+  grad.addColorStop(0, color + '40');
+  grad.addColorStop(1, color + '05');
+  ctx.fillStyle = grad; ctx.fill();
+
+  // Line
+  ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2;
+  for (let i = 0; i < vals.length; i++) {
+    const x = pad.left + (i / (vals.length - 1)) * cw;
+    const y = pad.top + ch - ((vals[i] - min) / range) * ch;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Dots on last point
+  const lastX = pad.left + cw;
+  const lastY = pad.top + ch - ((vals[vals.length - 1] - min) / range) * ch;
+  ctx.beginPath(); ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.fillStyle = '#e6edf3'; ctx.font = 'bold 12px system-ui';
+  ctx.textAlign = 'left';
+  ctx.fillText(fmt(vals[vals.length - 1]), lastX - 40, lastY - 10);
+}
+
+function renderMovers() {
+  const gainers = growthData.filter(g => (g.delta_followers || 0) > 0)
+    .sort((a, b) => b.delta_followers - a.delta_followers).slice(0, 5);
+  const losers = growthData.filter(g => (g.delta_followers || 0) < 0)
+    .sort((a, b) => a.delta_followers - b.delta_followers).slice(0, 5);
+
+  document.getElementById('gainersContent').innerHTML = gainers.length
+    ? gainers.map((g, i) => `<div class="mover-row">
+        <span class="mover-rank gain">${i + 1}</span>
+        <span class="mover-user">@${g.username}</span>
+        <span class="mover-delta up">+${g.delta_followers.toLocaleString()}</span>
+        <span class="mover-pct">${g.pct_followers != null ? '(' + g.pct_followers + '%)' : ''}</span>
+      </div>`).join('')
+    : '<span style="color:var(--muted);font-size:13px">No gainers yet</span>';
+
+  document.getElementById('losersContent').innerHTML = losers.length
+    ? losers.map((g, i) => `<div class="mover-row">
+        <span class="mover-rank loss">${i + 1}</span>
+        <span class="mover-user">@${g.username}</span>
+        <span class="mover-delta down">${g.delta_followers.toLocaleString()}</span>
+        <span class="mover-pct">${g.pct_followers != null ? '(' + g.pct_followers + '%)' : ''}</span>
+      </div>`).join('')
+    : '<span style="color:var(--muted);font-size:13px">No losers</span>';
+}
+
+function renderGrowthTable() {
+  let sorted = [...growthData];
+  sorted.sort((a, b) => {
+    const av = a[growthSortKey] || 0;
+    const bv = b[growthSortKey] || 0;
+    return growthSortDesc ? bv - av : av - bv;
+  });
+
+  document.getElementById('growthBody').innerHTML = sorted.map(g => {
+    const dcf = deltaClass(g.delta_followers);
+    const dcfg = deltaClass(g.delta_following);
+    const dcp = deltaClass(g.delta_posts);
+    return `<tr>
+      <td class="user-cell"><a href="#" onclick="showDetail('${g.username}');return false;">@${g.username}</a></td>
+      <td>${fmt(g.followers)}</td>
+      <td class="delta-cell ${dcf}">${fmtDelta(g.delta_followers)}${g.pct_followers != null ? ' <span style="font-size:11px;opacity:.7">(' + g.pct_followers + '%)</span>' : ''}</td>
+      <td>${fmt(g.following)}</td>
+      <td class="delta-cell ${dcfg}">${fmtDelta(g.delta_following)}</td>
+      <td>${fmt(g.posts)}</td>
+      <td class="delta-cell ${dcp}">${fmtDelta(g.delta_posts)}</td>
+      <td style="color:var(--muted);font-size:12px">${g.checked_at ? timeAgo(g.checked_at) : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function sortGrowth(key) {
+  if (growthSortKey === key) growthSortDesc = !growthSortDesc;
+  else { growthSortKey = key; growthSortDesc = true; }
+  renderGrowthTable();
+}
+
+// ── Detail panel with chart ──
+async function showDetail(username) {
+  const panel = document.getElementById('detailPanel');
+  const overlay = document.getElementById('detailOverlay');
+  panel.innerHTML = '<div class="loading"><div class="spin"></div></div>';
+  overlay.classList.add('show');
+  try {
+    const resp = await api(`/history/${username}?days=60&limit=60`);
+    const rows = resp.history || [];
+    const acc = allAccounts.find(a => a.username === username) || {};
+    const latest = rows[0] || {};
+    const prev = rows[1] || {};
+    const df = (latest.followers != null && prev.followers != null) ? latest.followers - prev.followers : null;
+    const dfg = (latest.following != null && prev.following != null) ? latest.following - prev.following : null;
+    const dp = (latest.posts != null && prev.posts != null) ? latest.posts - prev.posts : null;
+    let html = `<h2>@${username}</h2>`;
+    html += `<div class="detail-sub">${acc.label || latest.full_name || ''} ${acc.group_name ? '· ' + acc.group_name : ''} · ${latest.bio ? latest.bio.slice(0, 100) : ''}</div>`;
+
+    // Metrics with deltas
+    html += `<div class="detail-metrics">
+      <div class="dm">
+        <div class="val">${fmt(latest.followers)}</div>
+        <div class="lbl">Followers</div>
+        <div class="delta ${deltaClass(df)}">${fmtDelta(df)}</div>
+      </div>
+      <div class="dm">
+        <div class="val">${fmt(latest.following)}</div>
+        <div class="lbl">Following</div>
+        <div class="delta ${deltaClass(dfg)}">${fmtDelta(dfg)}</div>
+      </div>
+      <div class="dm">
+        <div class="val">${fmt(latest.posts)}</div>
+        <div class="lbl">Posts</div>
+        <div class="delta ${deltaClass(dp)}">${fmtDelta(dp)}</div>
+      </div>
+    </div>`;
+
+    // Chart
+    html += `<div class="detail-chart">
+      <div class="chart-tabs">
+        <span class="ct active" onclick="drawDetailChart('${username}','followers',this)">Followers</span>
+        <span class="ct" onclick="drawDetailChart('${username}','following',this)">Following</span>
+        <span class="ct" onclick="drawDetailChart('${username}','posts',this)">Posts</span>
+      </div>
+      <canvas id="detailChartCanvas"></canvas>
+    </div>`;
+
+    // History rows with deltas
+    html += '<h3 style="font-size:14px;margin:12px 0 8px;">Check History</h3>';
+    if (!rows.length) {
+      html += '<p style="color:var(--muted)">No history yet.</p>';
+    } else {
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const icon = r.status === 'ok' ? '&#10003;' : '&#10007;';
+        const iconColor = r.status === 'ok' ? 'var(--green)' : 'var(--red)';
+        const ts = (r.checked_at || '').replace('T', ' ').slice(0, 16);
+        const f = r.followers != null ? r.followers.toLocaleString() : '—';
+        let rowDelta = '';
+        if (i < rows.length - 1 && r.followers != null && rows[i + 1].followers != null) {
+          const d = r.followers - rows[i + 1].followers;
+          if (d !== 0) rowDelta = `<span class="hr-delta ${deltaClass(d)}">${fmtDelta(d)}</span>`;
+        }
+        html += `<div class="history-row">
+          <span><span style="color:${iconColor}">${icon}</span> ${ts}</span>
+          <span>${f} F ${rowDelta}</span>
+        </div>`;
+      }
+    }
+    html += `<button class="btn outline" onclick="closeDetail()" style="margin-top:16px;width:100%">Close</button>`;
+    panel.innerHTML = html;
+
+    // Store history for chart
+    historyCache[username] = rows;
+    setTimeout(() => drawDetailChart(username, 'followers'), 50);
+  } catch (e) {
+    panel.innerHTML = `<p>Error: ${e.message}</p>
+      <button class="btn outline" onclick="closeDetail()" style="margin-top:16px">Close</button>`;
+  }
+}
+
+function drawDetailChart(username, metric, tabEl) {
+  if (tabEl) {
+    tabEl.parentNode.querySelectorAll('.ct').forEach(t => t.classList.remove('active'));
+    tabEl.classList.add('active');
+  }
+  const canvas = document.getElementById('detailChartCanvas');
+  if (!canvas) return;
+  const data = (historyCache[username] || []).filter(d => d[metric] != null).reverse();
+  if (data.length < 2) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.offsetWidth; const h = 200;
+  canvas.width = w * 2; canvas.height = h * 2;
+  ctx.scale(2, 2);
+  const vals = data.map(d => d[metric]);
+  const min = Math.min(...vals); const max = Math.max(...vals);
+  const range = max - min || 1;
+  const pad = { top: 15, right: 15, bottom: 25, left: 55 };
+  const cw = w - pad.left - pad.right;
+  const ch = h - pad.top - pad.bottom;
+
+  // Grid + Y labels
+  ctx.fillStyle = '#8b949e'; ctx.font = '10px system-ui'; ctx.textAlign = 'right';
+  for (let i = 0; i <= 3; i++) {
+    const y = pad.top + ch - (i / 3) * ch;
+    ctx.fillText(fmt(min + (i / 3) * range), pad.left - 6, y + 3);
+    ctx.beginPath(); ctx.strokeStyle = '#30363d'; ctx.lineWidth = 0.5;
+    ctx.moveTo(pad.left, y); ctx.lineTo(w - pad.right, y); ctx.stroke();
+  }
+  // X labels
+  ctx.textAlign = 'center';
+  const step = Math.max(1, Math.floor(data.length / 5));
+  for (let i = 0; i < data.length; i += step) {
+    const x = pad.left + (i / (data.length - 1)) * cw;
+    const lbl = (data[i].checked_at || '').slice(5, 10);
+    ctx.fillText(lbl, x, h - 6);
+  }
+
+  const color = vals[vals.length - 1] >= vals[0] ? '#3fb950' : '#f85149';
+  // Area
+  ctx.beginPath();
+  for (let i = 0; i < vals.length; i++) {
+    const x = pad.left + (i / (vals.length - 1)) * cw;
+    const y = pad.top + ch - ((vals[i] - min) / range) * ch;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.lineTo(pad.left + cw, pad.top + ch);
+  ctx.lineTo(pad.left, pad.top + ch); ctx.closePath();
+  const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + ch);
+  grad.addColorStop(0, color + '35'); grad.addColorStop(1, color + '05');
+  ctx.fillStyle = grad; ctx.fill();
+  // Line
+  ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2;
+  for (let i = 0; i < vals.length; i++) {
+    const x = pad.left + (i / (vals.length - 1)) * cw;
+    const y = pad.top + ch - ((vals[i] - min) / range) * ch;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  // Dots
+  for (let i = 0; i < vals.length; i++) {
+    const x = pad.left + (i / (vals.length - 1)) * cw;
+    const y = pad.top + ch - ((vals[i] - min) / range) * ch;
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = color; ctx.fill();
+  }
+}
+
+function closeDetail() {
+  document.getElementById('detailOverlay').classList.remove('show');
+}
+
+// ── Actions ──
+function toggleAdd() {
+  document.getElementById('addBar').classList.toggle('show');
+  if (document.getElementById('addBar').classList.contains('show'))
+    document.getElementById('addUser').focus();
+}
+
+async function addAccount() {
+  const username = document.getElementById('addUser').value.trim();
+  if (!username) return;
+  const label = document.getElementById('addLabel').value.trim();
+  const group = document.getElementById('addGroup').value.trim();
+  try {
+    await api('/accounts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, label, group_name: group }),
+    });
+    document.getElementById('addUser').value = '';
+    document.getElementById('addLabel').value = '';
+    document.getElementById('addGroup').value = '';
+    toggleAdd();
+    toast(`Added @${username}`);
+    await loadAll();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function removeAccount(username) {
+  if (!confirm(`Remove @${username}?`)) return;
+  try {
+    await api(`/accounts/${username}`, { method: 'DELETE' });
+    toast(`Removed @${username}`);
+    await loadAll();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function toggleEnabled(username, enabled) {
+  try {
+    await api(`/accounts/${username}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: !!enabled }),
+    });
+    toast(`@${username} ${enabled ? 'enabled' : 'disabled'}`);
+    await loadAll();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function resetStats(username) {
+  if (!confirm(`Reset all stats for @${username}? This deletes all check history.`)) return;
+  try {
+    await api(`/history/${username}`, { method: 'DELETE' });
+    historyCache = {};
+    toast(`Stats reset for @${username}`);
+    await loadAll();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function resetAllStats() {
+  if (!confirm('Reset ALL stats for every account? This deletes all check history.')) return;
+  try {
+    await api('/history', { method: 'DELETE' });
+    historyCache = {};
+    toast('All stats reset');
+    await loadAll();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function checkSingle(username) {
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = 'Checking...';
+  _checkingUsers.add(username);
+  setCardChecking(username, true);
+  try {
+    const r = await api(`/check/${username}`, { method: 'POST' });
+
+    if (r.queued) {
+      // Queued into an active batch — let the polling handle completion
+      toast(`@${username} queued (position ${r.position})`);
+      btn.disabled = false; btn.textContent = 'Check';
+      return;
+    }
+
+    if (r.started) {
+      // Started a new background check — poll until done
+      toast(`@${username} check started`);
+      const poll = setInterval(async () => {
+        try {
+          const s = await api('/check/status');
+          if (!s.running) {
+            clearInterval(poll);
+            _checkingUsers.delete(username);
+            setCardChecking(username, false);
+            historyCache = {};
+            await loadAll();
+            btn.disabled = false; btn.textContent = 'Check';
+          } else {
+            // Sync checking state with backend
+            _checkingUsers.clear();
+            (s.active_usernames || []).forEach(u => _checkingUsers.add(u));
+            (s.queued || []).forEach(u => _checkingUsers.add(u));
+
+            // Refresh completed cards mid-check
+            const lr = await api('/history');
+            const nl = {};
+            for (const h of (lr.latest || [])) nl[h.username] = h;
+            for (const u of [..._checkingUsers]) {
+              const acc = allAccounts.find(a => a.username === u);
+              if (nl[u] && acc && nl[u].checked_at !== acc._checked_at) {
+                _checkingUsers.delete(u);
+                acc.followers = nl[u].followers;
+                acc.following = nl[u].following;
+                acc.posts = nl[u].posts;
+                acc.is_private = !!nl[u].is_private;
+                acc.last_status = nl[u].status || 'ok';
+                acc._checked_at = nl[u].checked_at;
+              }
+            }
+            renderCards();
+          }
+        } catch (e) {
+          clearInterval(poll);
+          _checkingUsers.delete(username);
+          setCardChecking(username, false);
+          btn.disabled = false; btn.textContent = 'Check';
+        }
+      }, 3000);
+      return;
+    }
+
+    // Direct result (shouldn't happen with current backend, but handle it)
+    toast(`@${username}: ${r.followers != null ? fmt(r.followers) + ' followers' : r.status}`);
+    historyCache = {};
+    _checkingUsers.delete(username);
+    await loadAll();
+    btn.disabled = false; btn.textContent = 'Check';
+  } catch (e) {
+    toast(e.message, true);
+    _checkingUsers.delete(username);
+    setCardChecking(username, false);
+    btn.disabled = false; btn.textContent = 'Check';
+  }
+}
+
+function setCardChecking(username, checking) {
+  const card = document.querySelector(`.card[data-user="${username}"]`);
+  if (card) {
+    if (checking) card.classList.add('checking');
+    else card.classList.remove('checking');
+  }
+}
+
+async function checkAll() {
+  const btn = document.getElementById('checkAllBtn');
+  btn.disabled = true; btn.textContent = 'Running...';
+  try {
+    // Mark all enabled accounts as checking
+    const enabledUsers = allAccounts.filter(a => a.enabled).map(a => a.username);
+    enabledUsers.forEach(u => _checkingUsers.add(u));
+    _checkAllPolling = true;
+    renderCards();
+
+    await api('/check/all', { method: 'POST' });
+    toast('Check started in background');
+
+    const poll = setInterval(async () => {
+      try {
+        // Refresh data to see which accounts already have new results
+        const latestResp = await api('/history');
+        const newLatest = {};
+        for (const h of (latestResp.latest || [])) newLatest[h.username] = h;
+
+        // Remove loading and update data for accounts that have new results
+        for (const u of [..._checkingUsers]) {
+          const acc = allAccounts.find(a => a.username === u);
+          const nl = newLatest[u];
+          if (nl && acc && nl.checked_at !== acc._checked_at) {
+            _checkingUsers.delete(u);
+            // Push new data into allAccounts so card renders fresh numbers
+            acc.followers = nl.followers;
+            acc.following = nl.following;
+            acc.posts = nl.posts;
+            acc.is_private = !!nl.is_private;
+            acc.last_status = nl.status || 'ok';
+            acc._checked_at = nl.checked_at;
+          }
+        }
+        renderCards();
+
+        const s = await api('/check/status');
+        if (!s.running) {
+          clearInterval(poll);
+          _checkingUsers.clear();
+          _checkAllPolling = false;
+          historyCache = {};
+          await loadAll();
+          btn.disabled = false; btn.textContent = 'Check All';
+          toast('Check complete');
+        }
+      } catch (e) {
+        clearInterval(poll);
+        _checkingUsers.clear();
+        _checkAllPolling = false;
+        btn.disabled = false; btn.textContent = 'Check All';
+        renderCards();
+      }
+    }, 5000);
+  } catch (e) {
+    toast(e.message, true);
+    _checkingUsers.clear();
+    _checkAllPolling = false;
+    btn.disabled = false; btn.textContent = 'Check All';
+    renderCards();
+  }
+}
+
+// ── Scheduler ──
+async function loadSchedulerStatus() {
+  try {
+    const s = await api('/scheduler/status');
+    const dot = document.getElementById('schedDot');
+    const label = document.getElementById('schedStatusLabel');
+    const startBtn = document.getElementById('schedStartBtn');
+    const stopBtn = document.getElementById('schedStopBtn');
+    const info = document.getElementById('schedInfo');
+    const jobsDiv = document.getElementById('schedJobs');
+
+    const running = s.running;
+    dot.className = 'sched-status-dot ' + (running ? 'on' : 'off');
+    label.textContent = running ? 'Running' : 'Stopped';
+    label.style.color = running ? 'var(--green)' : 'var(--muted)';
+    startBtn.style.display = running ? 'none' : '';
+    stopBtn.style.display = running ? '' : 'none';
+
+    if (running && s.jobs && s.jobs.length) {
+      // Try to set the time inputs from the daily_check job's next_run
+      const dailyJob = s.jobs.find(j => j.id === 'daily_check');
+      if (dailyJob && dailyJob.next_run) {
+        const d = new Date(dailyJob.next_run);
+        const { h, ampm } = to12h(d.getHours());
+        document.getElementById('schedHour12').value = h;
+        document.getElementById('schedMin').value = d.getMinutes();
+        document.getElementById('schedAmPm').value = ampm;
+      }
+
+      // Sync interval dropdown from active interval job
+      const ivlJob = s.jobs.find(j => j.id === 'interval_check');
+      if (ivlJob) {
+        const match = ivlJob.name.match(/every (\d+)h/);
+        if (match) document.getElementById('schedInterval').value = match[1];
+      } else {
+        document.getElementById('schedInterval').value = '0';
+      }
+
+      jobsDiv.innerHTML = s.jobs.map(j => {
+        let next = '—';
+        if (j.next_run) {
+          const d = new Date(j.next_run);
+          const dateStr = d.toLocaleDateString();
+          const timeStr = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+          next = `${dateStr} ${timeStr}`;
+        }
+        return `<div class="sched-job">
+          <span style="color:var(--green)">&#9679;</span>
+          <span class="job-name">${j.name}</span>
+          <span class="job-next">Next: ${next}</span>
+        </div>`;
+      }).join('');
+      info.innerHTML = `<span>${s.jobs.length}</span> scheduled job(s) active`;
+    } else {
+      jobsDiv.innerHTML = '';
+      info.innerHTML = running
+        ? 'Scheduler is running but no jobs configured'
+        : 'Scheduler is stopped. Set a time and click <strong>Start</strong> to enable auto checks.';
+    }
+  } catch (e) {
+    document.getElementById('schedInfo').textContent = 'Error loading scheduler status: ' + e.message;
+  }
+}
+
+function to24h(h12, ampm) {
+  h12 = parseInt(h12) || 12;
+  if (ampm === 'AM') return h12 === 12 ? 0 : h12;
+  return h12 === 12 ? 12 : h12 + 12;
+}
+function to12h(h24) {
+  h24 = parseInt(h24) || 0;
+  const ampm = h24 >= 12 ? 'PM' : 'AM';
+  let h12 = h24 % 12;
+  if (h12 === 0) h12 = 12;
+  return { h: h12, ampm };
+}
+function fmtTime12(h24, m) {
+  const { h, ampm } = to12h(h24);
+  return `${h}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+
+async function schedStart() {
+  const h12 = parseInt(document.getElementById('schedHour12').value) || 12;
+  const ampm = document.getElementById('schedAmPm').value;
+  const m = parseInt(document.getElementById('schedMin').value) || 0;
+  const h24 = to24h(h12, ampm);
+  const ivl = parseInt(document.getElementById('schedInterval').value) || 0;
+  try {
+    let url = `/scheduler/start?hour=${h24}&minute=${m}&interval_hours=${ivl}`;
+    await api(url, { method: 'POST' });
+    let msg = `Scheduler started \u2014 daily at ${fmtTime12(h24, m)}`;
+    if (ivl > 0) msg += `, also every ${ivl}h`;
+    toast(msg);
+    await loadSchedulerStatus();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function schedStop() {
+  try {
+    await api('/scheduler/stop', { method: 'POST' });
+    toast('Scheduler stopped');
+    await loadSchedulerStatus();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function dismissProxyError() {
+  try {
+    await api('/check/clear-proxy-error', { method: 'POST' });
+    document.getElementById('proxyErrorBanner').classList.remove('show');
+    toast('Proxy error cleared');
+  } catch (e) { toast('Failed to clear: ' + e.message, true); }
+}
+
+// -- Init --
+loadAll();
+loadSchedulerStatus();
+setInterval(() => { historyCache = {}; loadAll(); }, 60000);
+
+// -- Activity Monitor --
+(function(){
+  var _basePad = 48;
+  function pollActivity(){
+    var hdrs = {}; var k = localStorage.getItem('ig_api_key')||'';
+    if(k) hdrs['X-API-Key'] = k;
+    fetch('/api/v1/activity',{headers:hdrs,signal:AbortSignal.timeout(5000)})
+      .then(function(r){ if(r.ok) return r.json(); })
+      .then(function(d){ if(d) updateActivityUI(d); })
+      .catch(function(){});
+  }
+  function fmtActivity(data){
+    var parts = [];
+    if(data.checker && data.checker.active){
+      var c=data.checker; var l='Checker: '+(c.mode==='all'?'all accounts':c.mode==='single'?'single':'manual');
+      if(c.total) l+=' ('+c.completed+'/'+c.total+')';
+      if(c.current) l+=' \u2014 @'+c.current;
+      if(c.trigger==='scheduler') l+=' [sched]';
+      parts.push(l);
+    }
+    if(data.growth && data.growth.active){
+      var g=data.growth; var l='Growth: ';
+      if(g.devices&&g.devices.length){
+        var local=g.devices.filter(function(d){return !d._remote;});
+        var remote=g.devices.filter(function(d){return d._remote;});
+        var labels=[];
+        if(local.length) labels.push(local.map(function(d){return d.label||d.device_id;}).join(', '));
+        if(remote.length) labels.push(remote.map(function(d){return (d.label||d.device_id)+' [worker]';}).join(', '));
+        l+=labels.join(', ');
+      } else l+=(g.mode||'checking');
+      parts.push(l);
+    }
+    if(data.status && data.status.active){
+      var s=data.status; var l='Status: ';
+      if(s.devices&&s.devices.length){
+        var local=s.devices.filter(function(d){return !d._remote;});
+        var remote=s.devices.filter(function(d){return d._remote;});
+        var labels=[];
+        if(local.length) labels.push(local.map(function(d){return d.label||d.device_id;}).join(', '));
+        if(remote.length) labels.push(remote.map(function(d){return (d.label||d.device_id)+' [worker]';}).join(', '));
+        l+=labels.join(', ');
+      } else l+=(s.mode||'checking');
+      parts.push(l);
+    }
+    return parts;
+  }
+  function updateActivityUI(data){
+    var dotG=document.getElementById('dot-growth'), dotS=document.getElementById('dot-status'), dotC=document.getElementById('dot-checker');
+    var banner=document.getElementById('activityBanner');
+    if(dotG) dotG.classList.toggle('active',!!(data.growth&&data.growth.active));
+    if(dotS) dotS.classList.toggle('active',!!(data.status&&data.status.active));
+    if(dotC) dotC.classList.toggle('active',!!(data.checker&&data.checker.active));
+    var parts=fmtActivity(data);
+    if(parts.length && banner){
+      banner.innerHTML='<span style="font-weight:600">CHECK IN PROGRESS</span> '+parts.join(' &nbsp;|&nbsp; ');
+      banner.classList.add('visible');
+      document.body.style.paddingTop=(_basePad+banner.offsetHeight)+'px';
+    } else if(banner){
+      banner.classList.remove('visible');
+      document.body.style.paddingTop='';
+    }
+  }
+  pollActivity(); setInterval(pollActivity,10000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,2570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IG Growth Metrics</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117; --card: #1a1d27; --border: #2a2d3a;
+    --fg: #e4e4e7; --text: #e4e4e7; --muted: #71717a; --accent: #6366f1;
+    --green: #22c55e; --red: #ef4444; --yellow: #eab308; --blue: #3b82f6;
+    --purple: #a855f7; --pink: #ec4899; --orange: #f97316; --cyan: #06b6d4;
+  }
+  html.light {
+    --bg: #f5f5f7; --card: #ffffff; --border: #e0e0e4;
+    --fg: #1a1a1a; --text: #1a1a1a; --muted: #6b7280; --accent: #4f46e5;
+    --green: #16a34a; --red: #dc2626; --yellow: #ca8a04; --blue: #2563eb;
+    --purple: #7c3aed; --pink: #db2777; --orange: #ea580c; --cyan: #0891b2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+  /* ── Header ── */
+  .header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+  .header h1 { font-size: 1.35rem; font-weight: 700; }
+  .header h1 span { color: var(--accent); }
+  .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  /* ── Buttons ── */
+  .btn { background: var(--accent); color: #fff; border: none; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.15s; }
+  .btn:hover { opacity: 0.85; }
+  .btn.sm { padding: 4px 10px; font-size: 0.75rem; }
+  .btn.outline { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn.outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
+  .btn.danger:hover { background: var(--red); color: #fff; }
+  .btn.success { background: var(--green); }
+  .btn.ghost { background: transparent; color: var(--muted); padding: 4px 8px; }
+  .btn.ghost:hover { color: var(--text); }
+
+  /* ── Stats row ── */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 24px; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+  .stat .label { color: var(--muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .stat .val { font-size: 1.4rem; font-weight: 700; }
+  .stat .val.green { color: var(--green); }
+  .stat .val.blue { color: var(--blue); }
+  .stat .val.purple { color: var(--purple); }
+  .stat .val.muted { color: var(--muted); font-size: 0.85rem; }
+
+  /* ── Section headers ── */
+  .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .section-head h2 { font-size: 1rem; font-weight: 600; }
+  .section-actions { display: flex; gap: 6px; }
+
+  /* ── Device cards ── */
+  .device-grid { display: flex; flex-direction: column; gap: 16px; margin-bottom: 28px; }
+
+  .device-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: border-color 0.15s; }
+  .device-card:hover { border-color: #3a3d4a; }
+  .device-card.checking { border-color: var(--accent); }
+  .device-card.checking .dc-body { opacity: 0.6; }
+
+  /* ── Persistent checking state for device groups ── */
+  .device-group.checking { border-color: var(--accent); position: relative; overflow: hidden; }
+  .device-group.checking .dg-accounts { opacity: 0.55; pointer-events: none; }
+  .device-group.checking .dg-controls { opacity: 0.4; pointer-events: none; }
+  .device-group.checking .dg-header-right .btn,
+  .device-group.checking .dg-header-right .toggle input,
+  .device-group.checking .dg-header-right .btn-check { pointer-events: none; opacity: 0.4; }
+  .device-group.checking .dg-header-right .dg-check-status { opacity: 1; }
+  .device-group.checking::after {
+    content: ''; position: absolute; bottom: 0; left: 0; height: 3px; width: 30%;
+    background: var(--accent); border-radius: 2px;
+    animation: loadSlide 1.8s ease-in-out infinite;
+  }
+  @keyframes loadSlide { 0%{left:-30%;} 100%{left:100%;} }
+  .device-group.checking .dg-check-status {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.7rem; color: var(--accent); font-weight: 600;
+  }
+  .device-group:not(.checking) .dg-check-status { display: none; }
+
+  .dc-body { padding: 16px 18px 14px; }
+
+  .dc-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+  .dc-info { flex: 1; min-width: 0; }
+  .dc-username { font-weight: 600; font-size: 0.95rem; color: var(--text); background: transparent; border: 1px solid transparent; padding: 1px 4px; border-radius: 4px; width: 100%; max-width: 170px; }
+  .dc-username:hover { border-color: var(--border); }
+  .dc-username:focus { border-color: var(--accent); outline: none; background: var(--bg); }
+  .dc-id { color: var(--muted); font-size: 0.68rem; font-family: monospace; margin-top: 2px; }
+  .dc-proxy-input { font-size: 0.7rem; color: var(--muted); background: transparent; border: 1px solid transparent; padding: 1px 4px; border-radius: 4px; width: 100%; max-width: 260px; font-family: monospace; }
+  .dc-proxy-input:hover { border-color: var(--border); }
+  .dc-proxy-input:focus { border-color: var(--accent); outline: none; background: var(--bg); color: var(--text); }
+  .dc-badges { display: flex; gap: 4px; flex-shrink: 0; }
+  .badge { font-size: 0.6rem; padding: 2px 7px; border-radius: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .badge.b { background: #6366f118; color: var(--accent); border: 1px solid #6366f133; }
+  .badge.a { background: #22c55e18; color: var(--green); border: 1px solid #22c55e33; }
+  .badge.none { background: #71717a15; color: var(--muted); border: 1px solid var(--border); }
+
+  /* Metric boxes */
+  .dc-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px; }
+  .dc-m { text-align: center; padding: 10px 4px 8px; background: var(--bg); border-radius: 6px; }
+  .dc-m .n { font-size: 1.15rem; font-weight: 700; }
+  .dc-m .l { font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
+  .dc-m .delta { font-size: 0.62rem; margin-top: 2px; font-weight: 600; }
+  .dc-m .delta.up { color: var(--green); }
+  .dc-m .delta.down { color: var(--red); }
+  .dc-m .delta.flat { color: var(--muted); }
+
+  /* Growth score */
+  .score-badge { font-size: 0.58rem; padding: 2px 8px; border-radius: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
+  .score-badge.growing { background: #22c55e20; color: var(--green); border: 1px solid #22c55e40; }
+  .score-badge.stable { background: #3b82f620; color: var(--blue); border: 1px solid #3b82f640; }
+  .score-badge.slow { background: #eab30820; color: var(--yellow); border: 1px solid #eab30840; }
+  .score-badge.declining { background: #ef444420; color: var(--red); border: 1px solid #ef444440; }
+  .score-badge.neutral { background: #71717a15; color: var(--muted); border: 1px solid var(--border); }
+
+  /* Extended data panel */
+  .dc-extended { margin-bottom: 12px; }
+  .dc-ext-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--muted); font-size: 0.68rem; margin-bottom: 8px; user-select: none; }
+  .dc-ext-toggle:hover { color: var(--accent); }
+  .dc-ext-toggle .arr { transition: transform 0.2s; display: inline-block; font-size: 0.6rem; }
+  .dc-ext-toggle .arr.open { transform: rotate(90deg); }
+  .dc-ext-panel { display: none; gap: 10px; }
+  .dc-ext-panel.open { display: grid; grid-template-columns: 1fr 1fr; }
+  .ext-box { background: var(--bg); border-radius: 8px; padding: 10px 12px; }
+  .ext-box .ext-title { font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .ext-box .ext-title-meta { font-size: 0.62rem; font-weight: 500; color: var(--muted); text-transform: none; letter-spacing: 0; opacity: 0.85; }
+  .ext-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; font-size: 0.72rem; }
+  .ext-row .ext-label { color: var(--muted); }
+  .ext-row .ext-val { font-weight: 600; }
+  .ext-bar-wrap { margin-top: 4px; }
+  .ext-bar-item { margin-bottom: 6px; }
+  .ext-bar-item .ext-bar-label { display: flex; justify-content: space-between; font-size: 0.68rem; margin-bottom: 2px; }
+  .ext-bar-item .ext-bar-label span:first-child { color: var(--muted); }
+  .ext-bar-item .ext-bar-label span:last-child { font-weight: 600; }
+  .ext-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .ext-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+  .ext-bar-fill.purple { background: var(--purple); }
+  .ext-bar-fill.green { background: var(--green); }
+  .ext-bar-fill.blue { background: var(--blue); }
+  .ext-bar-fill.pink { background: var(--pink); }
+  .ext-bar-fill.orange { background: var(--orange); }
+  .ext-bar-fill.cyan { background: var(--cyan); }
+  .tc-item { position: relative; }
+  .tc-expand-btn { font-size: 0.5rem; color: var(--muted); cursor: pointer; margin-left: 4px; transition: transform 0.2s; display: inline-block; }
+  .tc-detail { display: none; padding: 6px 0 2px 0; }
+  .tc-detail.open { display: block; }
+  .tc-detail-row { display: flex; gap: 10px; flex-wrap: wrap; font-size: 0.62rem; color: var(--muted); padding: 2px 0; }
+  .tc-detail-row a { font-size: 0.62rem; }
+  /* Audience block — Top Cities (with %) on the left, Top Countries
+     (names + rank) on the right. Optional — only renders when IG has
+     enough demographic data on the account. */
+  .aud-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .aud-col-title { font-size: 0.62rem; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.04em; font-weight: 600; margin-bottom: 6px; }
+  .aud-row { display: grid; grid-template-columns: 80px 1fr 44px; gap: 8px;
+    align-items: center; margin-bottom: 5px; font-size: 0.68rem; }
+  .aud-row .aud-name { color: var(--fg); white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; }
+  .aud-row .aud-pct { font-weight: 600; text-align: right; color: var(--muted); }
+  .aud-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .aud-bar-fill { height: 100%; background: var(--accent); border-radius: 2px;
+    transition: width 0.3s; }
+  .aud-row-country { grid-template-columns: 22px 1fr; }
+  .aud-row-country .aud-rank { color: var(--muted); font-weight: 600;
+    font-size: 0.64rem; }
+  /* Content-type badge in Top Content rows. The previous unicode icon
+     (▶/○/■) was too subtle for users to differentiate Reel vs Story
+     vs Post at a glance — important context when an account is reel-
+     focused but Top Content surfaces stories (stories count each view,
+     reels deduplicate, so a single story can outscore a single reel). */
+  .tc-badge { display: inline-block; font-size: 0.55rem; font-weight: 700;
+    letter-spacing: 0.5px; padding: 1px 5px; border-radius: 3px;
+    margin-right: 5px; vertical-align: middle; line-height: 1.3; }
+  .tc-badge.reel { background: rgba(168, 85, 247, 0.22); color: #c4a3f7; }   /* purple */
+  .tc-badge.story { background: rgba(236, 72, 153, 0.22); color: #f4a3c7; }  /* pink */
+  .tc-badge.post { background: rgba(59, 130, 246, 0.22); color: #93b8f4; }   /* blue */
+  .tc-badge.other { background: rgba(156, 163, 175, 0.22); color: #cbd5e1; } /* gray */
+  /* Context note shown when Top Content is dominated by one type that
+     is NOT the dominant type in the views breakdown — explains the
+     apparent mismatch (e.g. all-stories top content on a reel-focused
+     account). */
+  .tc-context-note { margin-top: 8px; padding: 6px 8px;
+    background: rgba(99, 102, 241, 0.08); border-left: 2px solid var(--accent);
+    border-radius: 0 4px 4px 0; font-size: 0.62rem; color: var(--muted);
+    line-height: 1.4; }
+  .tc-context-note strong { color: var(--fg); font-weight: 600; }
+
+  /* Mini chart inside card */
+  .dc-chart-wrap { height: 140px; margin-bottom: 12px; position: relative; }
+  .dc-chart-wrap canvas { width: 100% !important; height: 100% !important; }
+  .dc-chart-empty { text-align: center; padding: 20px 0; color: var(--muted); font-size: 0.72rem; height: 140px; display: flex; align-items: center; justify-content: center; }
+
+  /* Footer */
+  .dc-foot { display: flex; align-items: center; justify-content: space-between; }
+  .dc-meta { font-size: 0.68rem; color: #9ca3af; }
+  .dc-actions { display: flex; align-items: center; gap: 5px; }
+
+  /* ── Toggle ── */
+  .toggle input { display: none; }
+  .toggle .sl { display: inline-block; width: 30px; height: 16px; background: var(--border); border-radius: 8px; position: relative; cursor: pointer; transition: background 0.2s; vertical-align: middle; }
+  .toggle .sl::after { content: ''; position: absolute; width: 12px; height: 12px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: transform 0.2s; }
+  .toggle input:checked + .sl { background: var(--green); }
+  .toggle input:checked + .sl::after { transform: translateX(14px); }
+  .toggle input:disabled + .sl { opacity: 0.3; cursor: not-allowed; }
+  .toggle-label { display: inline-flex; align-items: center; gap: 3px; }
+  .tl-text { font-size: 0.6rem; font-weight: 700; color: var(--muted); letter-spacing: 0.5px; }
+  .btn-check { background: var(--accent) !important; color: #000 !important; font-weight: 600; }
+  .btn-check:hover { filter: brightness(1.15); }
+  .btn-loading { background: var(--border) !important; color: var(--fg) !important; cursor: wait; }
+  .btn-spinner { display: inline-block; width: 10px; height: 10px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  /* ── Loading overlay ── */
+  .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+  .loading-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px 32px; text-align: center; }
+  .loading-box .ld-spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 10px; }
+  .loading-box .ld-text { font-size: 0.8rem; color: var(--muted); }
+  .error-banner { background: rgba(239,68,68,0.12); border: 1px solid var(--red); border-radius: 8px; padding: 12px 16px; margin: 8px 0; text-align: center; font-size: 0.75rem; color: var(--red); }
+  .error-banner button { background: var(--red); color: #fff; border: none; border-radius: 6px; padding: 4px 12px; font-size: 0.7rem; cursor: pointer; margin-left: 8px; }
+  .btn-danger-outline { border-color: var(--red) !important; color: var(--red) !important; }
+  .btn-danger-outline:hover { background: var(--red) !important; color: #fff !important; }
+
+  /* ── Trial Reels ── */
+  .trial-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .trial-card .trial-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .trial-card .trial-device { font-size: 0.72rem; color: var(--accent); font-weight: 600; }
+  .trial-card .trial-time { font-size: 0.65rem; color: var(--muted); }
+  .trial-reel-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .trial-reel { flex: 1; min-width: 140px; max-width: 200px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 0.75rem; }
+  .trial-reel.unavailable { opacity: 0.5; border-style: dashed; }
+  .trial-reel .tr-title { font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .trial-reel .tr-date { font-size: 0.65rem; color: var(--muted); margin-bottom: 6px; }
+  .trial-reel .tr-metric { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid var(--border); }
+  .trial-reel .tr-metric:last-child { border-bottom: none; }
+  .trial-reel .tr-label { color: var(--muted); }
+  .trial-reel .tr-val { font-weight: 600; }
+
+  /* ── Inline URL input (replaces former Video Library tab) ── */
+  .url-block { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+  .url-link { color: var(--accent); text-decoration: none; font-size: 0.72rem; }
+  .url-link:hover { text-decoration: underline; }
+  .url-input { flex: 1; min-width: 160px; padding: 5px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--fg); font-size: 0.72rem; outline: none; }
+  .url-input:focus { border-color: var(--green); }
+  .url-input.error { border-color: var(--red); }
+  .url-btn { background: var(--green); color: #fff; padding: 4px 10px; border: none; border-radius: 5px; font-size: 0.66rem; cursor: pointer; font-weight: 500; }
+  .url-btn:hover { opacity: 0.85; }
+  .url-btn.outline { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .url-btn.outline:hover { border-color: var(--accent); color: var(--accent); }
+  .url-edit-icon { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.78rem; padding: 0 4px; }
+  .url-edit-icon:hover { color: var(--accent); }
+
+  /* ── Update banner ── */
+  /* update-banner removed — data auto-refreshes */
+
+  /* ── Discover modal ── */
+  .modal-bg { position: fixed; inset: 0; background: #000a; z-index: 100; display: flex; align-items: center; justify-content: center; }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 90%; max-width: 560px; max-height: 80vh; overflow-y: auto; }
+  .modal h2 { font-size: 1.05rem; margin-bottom: 14px; }
+  .modal .close { float: right; cursor: pointer; color: var(--muted); font-size: 1.2rem; background: none; border: none; }
+  .modal .close:hover { color: var(--text); }
+  .disc-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; }
+  .disc-item .did { font-family: monospace; font-size: 0.82rem; }
+  .disc-item .dmodel { color: var(--muted); font-size: 0.72rem; }
+  .disc-item .dstate { font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; }
+  .disc-item .dstate.online { background: #22c55e22; color: var(--green); }
+  .disc-item .dstate.offline { background: #ef444422; color: var(--red); }
+  .disc-item .dstate.registered { background: #6366f122; color: var(--accent); }
+
+  /* ── Scheduler ── */
+  .sched-row { display: flex; align-items: center; gap: 6px; }
+  .sched-row input[type="time"] { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 3px 7px; border-radius: 5px; font-size: 0.78rem; }
+  .sched-status { font-size: 0.7rem; color: var(--muted); }
+
+  /* ── Empty ── */
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 0.85rem; }
+
+  /* ── Tabs ── */
+  .tab-bar { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .tab-btn { background: transparent; border: none; color: var(--muted); font-size: 0.82rem; font-weight: 600; padding: 10px 18px; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; border-radius: 6px 6px 0 0; }
+  .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(99,102,241,0.06); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── Viral Alerts ── */
+  .viral-global { margin-bottom: 28px; }
+  .viral-global h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; }
+  .viral-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 10px; }
+  .viral-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; transition: border-color 0.15s; }
+  .viral-card:hover { border-color: #3a3d4a; }
+  .viral-card.viral { border-left: 3px solid var(--red); }
+  .viral-card.trending { border-left: 3px solid var(--orange); }
+  .viral-card.rising { border-left: 3px solid var(--yellow); }
+  .viral-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .viral-user { font-weight: 600; font-size: 0.85rem; }
+  .viral-badge { font-size: 0.6rem; padding: 2px 8px; border-radius: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+  .viral-badge.viral { background: #ef444425; color: var(--red); border: 1px solid #ef444440; }
+  .viral-badge.trending { background: #f9731625; color: var(--orange); border: 1px solid #f9731640; }
+  .viral-badge.rising { background: #eab30825; color: var(--yellow); border: 1px solid #eab30840; }
+  .viral-content { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .viral-type-icon { font-size: 1.3rem; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg); border-radius: 8px; }
+  .viral-details { flex: 1; }
+  .viral-details .vid-title { font-size: 0.78rem; font-weight: 600; }
+  .viral-details .vid-date { font-size: 0.65rem; color: var(--muted); }
+  .viral-stats { display: flex; gap: 14px; font-size: 0.72rem; }
+  .viral-stats .vs-item { display: flex; flex-direction: column; align-items: center; }
+  .viral-stats .vs-val { font-weight: 700; font-size: 0.9rem; }
+  .viral-stats .vs-label { color: var(--muted); font-size: 0.6rem; text-transform: uppercase; }
+  .viral-signals { margin-top: 6px; }
+  .viral-signals span { display: inline-block; font-size: 0.62rem; background: var(--bg); color: var(--muted); padding: 2px 8px; border-radius: 4px; margin-right: 4px; margin-top: 3px; }
+  .viral-score-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+  .viral-score-fill { height: 100%; border-radius: 2px; }
+  .viral-score-fill.viral { background: var(--red); }
+  .viral-score-fill.trending { background: var(--orange); }
+  .viral-score-fill.rising { background: var(--yellow); }
+
+  /* Per-device viral toggle button */
+  .btn-viral { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 0.65rem; padding: 3px 8px; border-radius: 4px; cursor: pointer; }
+  .btn-viral:hover { border-color: var(--orange); color: var(--orange); }
+  .dc-viral-panel { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .dc-viral-panel.open { display: block; }
+  .dc-viral-list { display: flex; flex-direction: column; gap: 6px; }
+  .dc-viral-item { display: flex; align-items: center; justify-content: space-between; background: var(--bg); border-radius: 6px; padding: 8px 10px; font-size: 0.72rem; }
+  .dc-viral-item .dvi-left { display: flex; align-items: center; gap: 8px; }
+  .dc-viral-item .dvi-type { font-size: 1rem; }
+  .dc-viral-item .dvi-info .dvi-name { font-weight: 600; }
+  .dc-viral-item .dvi-info .dvi-date { color: var(--muted); font-size: 0.62rem; }
+  .dc-viral-item .dvi-right { text-align: right; }
+  .dc-viral-item .dvi-views { font-weight: 700; }
+  .dc-viral-item .dvi-score { font-size: 0.6rem; }
+
+  /* Viral filters */
+  .viral-filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .viral-filters select, .viral-filters input { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; }
+  .viral-filters select:focus, .viral-filters input:focus { border-color: var(--accent); outline: none; }
+  .viral-filters label { font-size: 0.68rem; color: var(--muted); }
+
+  /* Viral chart */
+  .viral-chart-wrap { height: 140px; margin-bottom: 20px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; position: relative; }
+  .viral-chart-wrap canvas { width: 100% !important; height: 100% !important; }
+
+  /* Activity badge */
+  .activity-badge { font-size: 0.58rem; padding: 2px 7px; border-radius: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+  .activity-badge.active { background: #22c55e18; color: var(--green); border: 1px solid #22c55e33; }
+  .activity-badge.slowing { background: #eab30818; color: var(--yellow); border: 1px solid #eab30833; }
+  .activity-badge.inactive { background: #ef444418; color: var(--red); border: 1px solid #ef444433; }
+  .activity-badge.no_data, .activity-badge.unknown { background: #71717a15; color: var(--muted); border: 1px solid var(--border); }
+  .dc-activity { font-size: 0.65rem; color: var(--muted); margin-top: 2px; }
+
+  /* ── Remote Workers section ── */
+  .worker-section-header { display: flex; align-items: center; gap: 10px; margin: 24px 0 12px; padding: 6px 10px; cursor: pointer; border-radius: 8px; transition: background 0.15s; user-select: none; }
+  .worker-section-header:hover { background: rgba(255,255,255,0.03); }
+  .worker-section-header .ws-arrow { font-size: 0.7rem; color: var(--muted); transition: transform 0.2s; width: 16px; }
+  .worker-section-header.collapsed .ws-arrow { transform: rotate(-90deg); }
+  .worker-section-header h3 { font-size: 0.85rem; font-weight: 600; color: var(--cyan); }
+  .worker-section-header.local-worker h3 { color: var(--accent); }
+  .worker-section-header .worker-badge { font-size: 0.6rem; padding: 2px 10px; border-radius: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .worker-section-header .worker-badge.remote { background: rgba(6,182,212,0.12); color: var(--cyan); border: 1px solid rgba(6,182,212,0.3); }
+  .worker-section-header .worker-badge.local { background: rgba(99,102,241,0.12); color: var(--accent); border: 1px solid rgba(99,102,241,0.3); }
+  .worker-section-body { overflow: hidden; transition: max-height 0.3s ease; }
+  .worker-section-body.collapsed { max-height: 0 !important; overflow: hidden; }
+  /* Keep old class for filter compat */
+  .remote-section-header { display: none; }
+  .device-group.remote-device { border-color: rgba(6,182,212,0.25); }
+  .device-group.remote-device .dg-header { border-bottom-color: rgba(6,182,212,0.15); }
+  .device-group.remote-device .dg-device-id::before { content: '📡 '; }
+
+  /* ── Device Group (multi-account) ── */
+  .device-group { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
+  .dg-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid var(--border); background: var(--bg); }
+  .dg-header-left { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+  .dg-device-id { font-family: monospace; font-size: 0.78rem; color: var(--muted); }
+  .dg-device-id-sub { font-family: monospace; font-size: 0.6rem; color: var(--muted); opacity: 0.5; letter-spacing: 0.02em; }
+  .dg-label-input { font-size: 0.85rem; color: var(--fg); font-weight: 600; background: transparent; border: 1px solid transparent; padding: 2px 6px; border-radius: 4px; min-width: 80px; max-width: 220px; }
+  .dg-label-input:not(:placeholder-shown) { color: var(--fg); }
+  .dg-label-input:placeholder-shown { font-size: 0.78rem; font-weight: 500; }
+  .dg-label-input:hover { border-color: var(--border); cursor: text; }
+  .dg-label-input:focus { border-color: var(--accent); background: var(--bg); outline: none; }
+  .dg-label-input::placeholder { color: var(--muted); font-weight: 500; font-size: 0.78rem; opacity: 0.7; }
+  .dg-account-count { font-size: 0.6rem; color: var(--muted); background: var(--card); padding: 2px 8px; border-radius: 10px; border: 1px solid var(--border); }
+  .dg-header-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .dg-controls { display: flex; align-items: center; gap: 8px; padding: 8px 18px; border-bottom: 1px solid var(--border); background: var(--bg); flex-wrap: wrap; }
+  .dg-controls input { font-size: 0.7rem; color: var(--muted); background: transparent; border: 1px solid transparent; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+  .dg-controls input:hover { border-color: var(--border); }
+  .dg-controls input:focus { border-color: var(--accent); outline: none; background: var(--card); color: var(--text); }
+  /* Device-level notes (per-device free-form text) */
+  .dg-notes { padding: 6px 18px 8px; border-bottom: 1px solid var(--border); background: var(--bg); }
+  .dg-notes textarea { width: 100%; min-height: 24px; max-height: 160px; resize: vertical; font-size: 0.74rem; color: var(--text); background: transparent; border: 1px solid transparent; padding: 4px 6px; border-radius: 4px; outline: none; font-family: inherit; line-height: 1.35; }
+  .dg-notes textarea::placeholder { color: var(--muted); }
+  .dg-notes textarea:hover { border-color: var(--border); }
+  .dg-notes textarea:focus { border-color: var(--accent); background: var(--card); }
+  /* Manual review banner (account state flagged: checkpoint, banned, expired) */
+  .dg-review-banner { background: rgba(234,179,8,0.10); border-bottom: 1px solid rgba(234,179,8,0.30); color: var(--yellow); padding: 8px 18px; font-size: 0.78rem; font-weight: 500; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .dg-review-banner .dg-review-icon { font-size: 0.95rem; }
+  .dg-review-banner .dg-review-accts { color: var(--text); font-weight: 400; opacity: 0.85; }
+  .dg-review-banner .dg-review-accts code { background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 3px; font-size: 0.72rem; }
+  .dg-review-banner .dg-review-action { color: var(--text); opacity: 0.7; font-style: italic; font-weight: 400; }
+  .dg-accounts { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 0; }
+  .dg-account-card { padding: 16px 18px 14px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .dg-account-card:last-child { border-right: none; }
+  .dg-acct-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .dg-acct-username { font-weight: 700; font-size: 0.95rem; color: var(--accent); }
+  .dg-acct-badges { display: flex; gap: 4px; }
+  .dg-acct-meta { font-size: 0.65rem; color: var(--muted); margin-top: 2px; }
+  .dg-acct-error { font-size: 0.72rem; color: var(--red); margin-bottom: 8px; word-break: break-word; }
+
+  /* ── Accounts Manager (tags + modal) ── */
+  .acct-tags { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+  .acct-tag { display: inline-flex; align-items: center; gap: 3px; background: var(--accent)15; border: 1px solid var(--accent)33; color: var(--accent); font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 12px; }
+  .acct-tag-primary { background: var(--green)15; border-color: var(--green)33; color: var(--green); }
+  .acct-btn-manage { background: transparent; border: 1px dashed var(--border); color: var(--muted); font-size: 0.65rem; padding: 3px 10px; border-radius: 12px; cursor: pointer; transition: all 0.15s; }
+  .acct-btn-manage:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Accounts modal */
+  .acct-modal-bg { position: fixed; inset: 0; background: #000a; z-index: 100; display: flex; align-items: center; justify-content: center; }
+  .acct-modal { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; width: 90%; max-width: 420px; max-height: 80vh; overflow-y: auto; }
+  .acct-modal h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; }
+  .acct-modal .am-device { font-size: 0.7rem; color: var(--muted); font-family: monospace; margin-bottom: 16px; }
+  .acct-modal .am-close { float: right; cursor: pointer; color: var(--muted); font-size: 1.2rem; background: none; border: none; line-height: 1; }
+  .acct-modal .am-close:hover { color: var(--text); }
+  .am-section { margin-bottom: 16px; }
+  .am-section-title { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 8px; }
+  .am-primary-row { display: flex; gap: 8px; align-items: center; }
+  .am-primary-row input { flex: 1; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.82rem; outline: none; }
+  .am-primary-row input:focus { border-color: var(--accent); }
+  .am-account-list { display: flex; flex-direction: column; gap: 6px; }
+  .am-account-item { display: flex; align-items: center; justify-content: space-between; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; gap: 8px; }
+  .am-account-item .am-name { font-size: 0.82rem; font-weight: 600; color: var(--accent); flex: 1; }
+  .am-account-item.archived .am-name { color: var(--muted); text-decoration: line-through; opacity: 0.7; }
+  .am-account-item .am-actions { display: flex; gap: 4px; align-items: center; }
+  .am-account-item .am-archive,
+  .am-account-item .am-unarchive { background: none; border: 1px solid var(--border); color: var(--muted); font-size: 0.65rem; cursor: pointer; padding: 3px 8px; line-height: 1; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.3px; font-weight: 600; }
+  .am-account-item .am-archive:hover { color: var(--text); border-color: var(--text); }
+  .am-account-item .am-unarchive:hover { color: var(--green); border-color: var(--green); }
+  .am-account-item .am-remove { background: none; border: none; color: var(--muted); font-size: 0.9rem; cursor: pointer; padding: 0 4px; line-height: 1; }
+  .am-account-item .am-remove:hover { color: var(--red); }
+  .am-archived-toggle { background: none; border: 1px dashed var(--border); color: var(--muted); padding: 8px 12px; font-size: 0.72rem; cursor: pointer; width: 100%; border-radius: 8px; margin-top: 8px; display: flex; align-items: center; justify-content: space-between; }
+  .am-archived-toggle:hover { color: var(--text); border-color: var(--text); }
+  .am-archived-toggle .am-arrow { transition: transform 0.15s ease; }
+  .am-archived-toggle.expanded .am-arrow { transform: rotate(90deg); }
+  .am-archived-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .am-add-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+  .am-add-row input { flex: 1; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.82rem; outline: none; }
+  .am-add-row input:focus { border-color: var(--accent); }
+  .am-add-row button { background: var(--accent); color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .am-add-row button:hover { opacity: 0.85; }
+  .am-empty { font-size: 0.75rem; color: var(--muted); padding: 8px 0; }
+  .am-save-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+
+  /* ── Responsive ── */
+  @media (max-width: 820px) { .device-grid { grid-template-columns: 1fr; } .viral-grid { grid-template-columns: 1fr; } .dg-accounts { grid-template-columns: 1fr; } }
+  @media (max-width: 600px) {
+    body { padding: 14px; }
+    .dc-metrics { grid-template-columns: repeat(2, 1fr); }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .header { flex-direction: column; align-items: flex-start; }
+    .dg-accounts { grid-template-columns: 1fr; }
+  }
+
+  /* -- Nav bar -- */
+  .topnav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: var(--bg); opacity: 0.97; backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 2px;
+    padding: 0 20px; height: 40px; font-size: 13px;
+  }
+  .topnav a {
+    color: var(--muted); text-decoration: none; padding: 8px 14px;
+    border-radius: 6px; transition: color 0.15s, background 0.15s;
+    font-weight: 500;
+  }
+  .topnav a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+  .topnav a.active { color: #22c55e; background: rgba(34,197,94,0.1); }
+  body { padding-top: 48px; }
+  /* -- Activity indicator -- */
+  .activity-dot { display: none; width: 7px; height: 7px; border-radius: 50%; background: var(--yellow); margin-left: 4px; animation: pulse-dot 1.5s ease-in-out infinite; vertical-align: middle; }
+  .activity-dot.active { display: inline-block; }
+  @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  .activity-banner { display: none; position: fixed; top: 40px; left: 0; right: 0; z-index: 99; background: rgba(234,179,8,0.08); border-bottom: 1px solid rgba(234,179,8,0.18); padding: 5px 20px; font-size: 0.72rem; color: var(--yellow); backdrop-filter: blur(8px); }
+  .activity-banner.visible { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <a href="/" title="Overview &amp; summary of all services">Hub</a>
+  <a href="/growth" class="active" title="Follower &amp; views tracking per device">Growth <span class="activity-dot" id="dot-growth"></span></a>
+  <a href="/status" title="Ban, captcha &amp; account health detection">Status <span class="activity-dot" id="dot-status"></span></a>
+  <a href="/checker" title="Bulk username availability checker">Checker <span class="activity-dot" id="dot-checker"></span></a>
+  <button onclick="toggleTheme()" id="themeToggle" title="Switch light/dark mode" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem;margin-left:auto">🌙</button>
+</nav>
+<script>
+function toggleTheme(){var h=document.documentElement;h.classList.toggle('light');var t=h.classList.contains('light')?'light':'dark';localStorage.setItem('ig_theme',t);document.getElementById('themeToggle').textContent=t==='light'?'🌑':'🌙';}
+(function(){var t=localStorage.getItem('ig_theme');if(t==='light'){document.documentElement.classList.add('light');document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('themeToggle');if(b)b.textContent='🌑';});}})();
+</script>
+<div class="activity-banner" id="activityBanner"></div>
+
+
+<!-- ── Header ── -->
+<div class="header">
+  <h1><span>IG</span> Growth Metrics</h1>
+  <p style="margin:0;font-size:0.72rem;color:var(--muted);font-weight:400">Follower &amp; views tracking per device — monitor account growth over time</p>
+  <div class="header-actions">
+    <div class="sched-row">
+      <input type="time" id="schedTime" value="08:00">
+      <button class="btn sm" id="btnSchedStart" onclick="startScheduler()">Start</button>
+      <button class="btn sm outline" id="btnSchedStop" onclick="stopScheduler()" style="display:none">Stop</button>
+      <span class="sched-status" id="schedStatus"></span>
+    </div>
+    <button class="btn success" onclick="forceCheckAll(event)">Run All</button>
+  </div>
+</div>
+
+<!-- ── Health banner ── -->
+<div id="healthBanner" style="display:none;align-items:center;gap:10px;padding:10px 16px;border-radius:10px;margin-bottom:16px;font-size:0.82rem;font-weight:600"></div>
+
+<!-- ── Stats ── -->
+<div class="stats">
+  <div class="stat"><div class="label">Devices</div><div class="val" id="statTotal">-</div></div>
+  <div class="stat"><div class="label">Enabled</div><div class="val green" id="statEnabled">-</div></div>
+  <div class="stat"><div class="label">Monitored</div><div class="val blue" id="statMonitored">-</div></div>
+  <div class="stat"><div class="label">Total Views</div><div class="val purple" id="statTotalViews">-</div></div>
+  <div class="stat"><div class="label">Last Check</div><div class="val muted" id="statLastCheck">-</div></div>
+</div>
+
+<!-- ── Tabs ── -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('devices')" title="All connected phones &amp; their accounts">📱 Devices <span id="tabCountDevices" style="font-size:0.65rem;color:var(--accent);margin-left:2px"></span></button>
+  <button class="tab-btn" onclick="switchTab('trials')" title="Test reels &amp; their performance metrics">🧪 Trial Reels <span id="trialsCount" style="font-size:0.65rem;color:var(--accent)"></span></button>
+  <button class="tab-btn" onclick="switchTab('viral')" title="Content that is going viral or trending">🔥 Viral Alerts <span id="viralCount" style="font-size:0.65rem;color:var(--red)"></span></button>
+</div>
+
+<!-- ── Tab: Devices ── -->
+<div class="tab-content active" id="tab-devices">
+  <div class="section-head">
+    <h2>Devices</h2>
+    <div class="section-actions">
+      <button class="btn sm outline" onclick="refreshDevices()">Refresh</button>
+      <button class="btn sm outline" id="adminToggleBtn" onclick="toggleAdminActions()" title="Show admin actions">&#9881; Admin</button>
+      <span id="adminActions" style="display:none;gap:6px" class="section-actions">
+        <button class="btn sm outline" onclick="discoverDevices()">Discover</button>
+        <button class="btn sm outline" onclick="addAllDevices()">+ Add All</button>
+        <button class="btn sm outline btn-danger-outline" onclick="removeAllDevices()">Remove All</button>
+      </span>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+    <input type="text" id="deviceSearch" placeholder="Search by name, username, or device..." oninput="filterDevices()" style="flex:1;min-width:200px;padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.8rem;outline:none">
+    <select id="deviceScoreFilter" onchange="filterDevices()" style="padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.78rem">
+      <option value="">All scores</option>
+      <option value="growing">Growing</option>
+      <option value="stable">Stable</option>
+      <option value="slow">Slow</option>
+      <option value="declining">Declining</option>
+    </select>
+    <button id="sortIssuesBtn" onclick="toggleSortByIssues()" style="padding:7px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:0.78rem;cursor:pointer;transition:all 0.15s;white-space:nowrap">&#x2195; Declining first</button>
+    <span id="filterCount" style="font-size:0.7rem;color:var(--muted)"></span>
+  </div>
+  <div class="device-grid" id="deviceGrid">
+    <div class="empty-state">Loading...</div>
+  </div>
+</div>
+
+<!-- ── Tab: Viral Alerts ── -->
+<!-- ── Tab: Trial Reels ── -->
+<div class="tab-content" id="tab-trials">
+  <div class="section-head">
+    <h2>Trial Reels</h2>
+    <div class="section-actions">
+      <select id="trialDeviceFilter" onchange="loadTrialReels()" style="background:var(--card);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:0.75rem">
+        <option value="all">All devices</option>
+      </select>
+      <button class="btn sm outline" onclick="loadTrialReels()">Refresh</button>
+    </div>
+  </div>
+  <div id="trialsGrid" class="device-grid">
+    <div class="empty-state">No trial reels data yet. Run a check on a device with trial reels enabled.</div>
+  </div>
+</div>
+
+<div class="tab-content" id="tab-viral">
+  <!-- Filters -->
+  <div class="viral-filters">
+    <label>Status:</label>
+    <select id="vfStatus" onchange="applyViralFilters()">
+      <option value="all">All</option>
+      <option value="viral">Viral</option>
+      <option value="trending">Trending</option>
+      <option value="rising">Rising</option>
+    </select>
+    <label>Account:</label>
+    <select id="vfAccount" onchange="applyViralFilters()">
+      <option value="all">All accounts</option>
+    </select>
+    <label>Days:</label>
+    <select id="vfDays" onchange="loadViralData()">
+      <option value="7">7 days</option>
+      <option value="14">14 days</option>
+      <option value="30" selected>30 days</option>
+      <option value="90">90 days</option>
+    </select>
+    <button class="btn sm outline" onclick="resetViralFilters()" style="margin-left:auto;font-size:0.72rem">Reset filters</button>
+    <button class="btn sm outline btn-danger-outline" onclick="clearAllViralAlerts()" style="font-size:0.72rem">🗑 Clear all alerts</button>
+  </div>
+
+  <!-- Alerts per day chart -->
+  <div class="viral-chart-wrap" id="viralChartWrap">
+    <canvas id="viralChart"></canvas>
+  </div>
+
+  <!-- Global Top 7 -->
+  <div class="viral-global">
+    <div class="section-head">
+      <h3>Global Top 7</h3>
+      <button class="btn sm outline" onclick="loadViralData()">Refresh</button>
+    </div>
+    <div class="viral-grid" id="viralGlobalGrid">
+      <div class="empty-state" style="grid-column:1/-1;padding:30px 0;text-align:center">⏳ Loading viral data...</div>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="section-head" style="margin-top:20px">
+    <h3>Recent Alert History</h3>
+  </div>
+  <div class="viral-grid" id="viralHistoryGrid">
+    <div class="empty-state" style="grid-column:1/-1;padding:20px 0;text-align:center">⏳ Loading history...</div>
+  </div>
+</div>
+
+<!-- ── Discover modal ── -->
+<div id="discoverModal" style="display:none"></div>
+
+<script>
+function toggleAdminActions() {
+  var el = document.getElementById('adminActions');
+  var showing = el.style.display === 'flex';
+  el.style.display = showing ? 'none' : 'flex';
+  document.getElementById('adminToggleBtn').style.borderColor = showing ? '' : 'var(--accent)';
+  document.getElementById('adminToggleBtn').style.color = showing ? '' : 'var(--accent)';
+}
+const API = '/api/v1/growth';
+const API_KEY = localStorage.getItem('ig_api_key') || '';
+
+if (!API_KEY) fetch(API+'/devices',{signal:AbortSignal.timeout(15000)}).then(r=>{if(r.status===401)window.location='/';}).catch(()=>{});
+const COLORS = ['#6366f1','#22c55e','#3b82f6','#f97316','#ec4899','#a855f7','#eab308','#06b6d4','#ef4444','#10b981'];
+
+// ── Sort by issues ──
+var _sortByIssues = localStorage.getItem('growth_sort_issues') === '1';
+const _scoreWeights = { declining: 4, slow: 3, neutral: 2, stable: 1, growing: 0 };
+
+function _deviceWorstScore(did) {
+  var accts = metricsByDevice[did] || [];
+  var worst = -1;
+  accts.forEach(function(m) {
+    var k = did + '|' + (m.username || '');
+    var g = growthData[k];
+    if (g && g.score_label) {
+      var w = _scoreWeights[g.score_label] || 0;
+      if (w > worst) worst = w;
+    }
+  });
+  return worst;
+}
+
+function toggleWorkerSection(header, key) {
+  header.classList.toggle('collapsed');
+  var body = header.nextElementSibling;
+  if (body) body.classList.toggle('collapsed');
+  localStorage.setItem(key, header.classList.contains('collapsed') ? '1' : '0');
+}
+
+function toggleSortByIssues() {
+  _sortByIssues = !_sortByIssues;
+  localStorage.setItem('growth_sort_issues', _sortByIssues ? '1' : '0');
+  var btn = document.getElementById('sortIssuesBtn');
+  btn.style.borderColor = _sortByIssues ? 'var(--accent)' : '';
+  btn.style.color = _sortByIssues ? 'var(--accent)' : '';
+  renderDeviceGrid();
+  filterDevices();
+}
+
+(function() {
+  if (_sortByIssues) {
+    var btn = document.getElementById('sortIssuesBtn');
+    if (btn) { btn.style.borderColor = 'var(--accent)'; btn.style.color = 'var(--accent)'; }
+  }
+})();
+
+let devices = [];
+let latestMetrics = {};       // composite key "device_id|username" → metric
+let allMetrics = [];          // raw array from API
+let metricsByDevice = {};     // device_id → [metrics]
+let historyData = [];
+let growthData = {};  // "device_id|username" → {deltas, score, score_label, ...}
+let activityData = {};  // "device_id|username" → {status, last_new_content_ago, ...}
+// Store chart instances per account so we can destroy on re-render
+const deviceCharts = {};
+// ── Activity-driven checking state ──
+// Source of truth: /api/v1/activity (the orchestrator's actual device locks).
+// _busyDevices is rebuilt from each poll; the local _pendingClick set is the
+// transient state between clicking "Check" and the next pollActivity confirming.
+const _busyDevices = new Set();           // device_ids the backend currently reports as busy
+const _pendingClick = new Set();          // device_ids we clicked locally, awaiting backend confirmation
+const _busySince = {};                    // device_id → Date.now() first seen busy (for watchdog)
+const _WATCHDOG_MS = 15 * 60 * 1000;      // 15 min — auto-recover if a device looks stuck
+
+// ── Helpers ──
+function shortId(id) { return id && id.length > 14 ? id.slice(0,12)+'…' : id; }
+function fmt(n) {
+  if (n == null) return '-';
+  if (n >= 1000000) return (n/1000000).toFixed(1)+'M';
+  if (n >= 1000) return (n/1000).toFixed(1)+'K';
+  return n.toLocaleString();
+}
+function fmtShort(n) {
+  if (n == null) return '0';
+  if (n >= 1000000) return (n/1000000).toFixed(1)+'M';
+  if (n >= 1000) return (n/1000).toFixed(1)+'K';
+  return String(n);
+}
+function timeAgo(iso) {
+  if (!iso) return '-';
+  // Handle ISO strings with or without Z, and with +00:00 offset
+  let d;
+  if (iso.endsWith('Z') || iso.includes('+')) d = new Date(iso);
+  else d = new Date(iso + 'Z');
+  if (isNaN(d.getTime())) return '-';
+  const diff = (Date.now()-d.getTime())/1000;
+  if (diff < 0) return 'just now';
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff/60)+'m ago';
+  if (diff < 86400) return Math.floor(diff/3600)+'h ago';
+  return Math.floor(diff/86400)+'d ago';
+}
+// Turn backend error strings into readable messages. Recognized prefixes:
+//   account_state:<state>:@<user>          → "Account in <state> — manual review required"
+//   Skipped: device flagged for manual...  → "Skipped — device flagged for manual review"
+//   Skipped: proxy failed (...)            → "Skipped — proxy failed earlier in this run"
+//   anything else                           → original text, truncated to 150 chars
+function _humanizeError(raw) {
+  if (!raw || typeof raw !== 'string') return '';
+  if (raw.indexOf('account_state:') === 0) {
+    var parts = raw.split(':');
+    var state = parts[1] || 'unknown';
+    return '⚠️ Account in ' + state + ' — manual review required (enter verification code on the phone)';
+  }
+  if (raw.indexOf('Skipped: device flagged for manual review') === 0) {
+    return '⚠️ Skipped — device flagged for manual review (see banner above)';
+  }
+  if (raw.indexOf('Skipped: proxy failed') === 0) {
+    return 'Skipped — proxy failed earlier in this run';
+  }
+  return raw.length > 150 ? raw.substring(0, 150) + '…' : raw;
+}
+
+function deltaHtml(deltas, key) {
+  if (!deltas || !deltas[key]) return '';
+  const d = deltas[key];
+  if (d.value == null) return '';
+  const arrow = d.direction === 'up' ? '&#9650;' : d.direction === 'down' ? '&#9660;' : '&#8212;';
+  const cls = d.direction;
+  const val = d.value > 0 ? '+'+fmt(d.value) : fmt(d.value);
+  const pct = d.pct != null ? ` (${d.pct > 0 ? '+' : ''}${d.pct}%)` : '';
+  return `<div class="delta ${cls}">${arrow} ${val}${pct}</div>`;
+}
+function scoreBadge(g) {
+  if (!g || !g.has_comparison) return '';
+  const label = g.score_label || 'neutral';
+  // Score is a 1-100 growth indicator — render as a percentage so the scale
+  // is unambiguous.
+  return `<span class="score-badge ${label}">${g.score}% · ${label}</span>`;
+}
+function extBarHtml(label, pct, color) {
+  if (pct == null) return '';
+  return `<div class="ext-bar-item">
+    <div class="ext-bar-label"><span>${label}</span><span>${pct}%</span></div>
+    <div class="ext-bar"><div class="ext-bar-fill ${color}" style="width:${Math.min(pct,100)}%"></div></div>
+  </div>`;
+}
+function renderExtended(m, overrideCid, actInfo) {
+  const ext = m.extended || m.extended_json;
+  if (!ext || (typeof ext === 'string' && !ext)) return '';
+  const data = typeof ext === 'string' ? JSON.parse(ext) : ext;
+  const vd = m.views_detail || [];
+  if (!data && !vd.length) return '';
+  if (data && !data.views && !data.interactions && !vd.length) return '';
+
+  const v = (data && data.views) || {};
+  const inter = (data && data.interactions) || {};
+  const hasViews = v.followers_pct != null || v.non_followers_pct != null || (v.content_type && Object.keys(v.content_type).length);
+  const hasInter = inter.followers_pct != null || inter.non_followers_pct != null || (inter.content_type && Object.keys(inter.content_type).length);
+  if (!hasViews && !hasInter && !vd.length) return '';
+
+  let viewsBox = '';
+  if (hasViews) {
+    let bars = '';
+    bars += extBarHtml('Followers', v.followers_pct, 'blue');
+    bars += extBarHtml('Non-followers', v.non_followers_pct, 'purple');
+    const ct = v.content_type || {};
+    if (ct.reels_pct != null) bars += extBarHtml('Reels', ct.reels_pct, 'pink');
+    if (ct.posts_pct != null) bars += extBarHtml('Posts', ct.posts_pct, 'orange');
+    if (ct.stories_pct != null) bars += extBarHtml('Stories', ct.stories_pct, 'cyan');
+    let extras = '';
+    if (v.profile_visits != null) extras += `<div class="ext-row"><span class="ext-label">Profile visits</span><span class="ext-val">${fmt(v.profile_visits)}</span></div>`;
+    if (v.external_link_taps != null) extras += `<div class="ext-row"><span class="ext-label">Link taps</span><span class="ext-val">${fmt(v.external_link_taps)}</span></div>`;
+    viewsBox = `<div class="ext-box"><div class="ext-title">Views Breakdown</div><div class="ext-bar-wrap">${bars}</div>${extras}</div>`;
+  }
+
+  let interBox = '';
+  if (hasInter) {
+    let bars = '';
+    bars += extBarHtml('Followers', inter.followers_pct, 'blue');
+    bars += extBarHtml('Non-followers', inter.non_followers_pct, 'purple');
+    const ct = inter.content_type || {};
+    if (ct.reels_pct != null) bars += extBarHtml('Reels', ct.reels_pct, 'pink');
+    if (ct.posts_pct != null) bars += extBarHtml('Posts', ct.posts_pct, 'orange');
+    if (ct.stories_pct != null) bars += extBarHtml('Stories', ct.stories_pct, 'cyan');
+    interBox = `<div class="ext-box"><div class="ext-title">Interactions Breakdown</div><div class="ext-bar-wrap">${bars}</div></div>`;
+  }
+
+  // Top content (views_detail from the metric) + video details merged
+  const videoDetails = (data && data.video_details) || [];
+  const cid = overrideCid || cssId(m.device_id || '');
+  let topContentBox = '';
+  if (vd.length > 0) {
+    const maxViews = vd[0].views || 1;
+    const rows = vd.slice(0, 5).map((item, idx) => {
+      const pct = Math.round((item.views / maxViews) * 100);
+      // Type badge — more readable than the previous unicode icon
+      const _t = (item.type || '').toLowerCase();
+      const badgeClass = _t === 'reel' ? 'reel' : _t === 'story' ? 'story' : _t === 'post' ? 'post' : 'other';
+      const badgeLabel = (item.type || '?').toUpperCase();
+      const typeBadge = `<span class="tc-badge ${badgeClass}">${badgeLabel}</span>`;
+      const color = idx === 0 ? 'green' : idx === 1 ? 'blue' : 'purple';
+      // Match video detail by position (1-indexed)
+      const vdet = videoDetails.find(v => v.position === idx + 1) || {};
+      const hasDetail = vdet.views != null || vdet.title;
+      const vid = `tc-${cid}-${idx}`;
+      const title = vdet.title && vdet.title !== 'Untitled' ? vdet.title : '';
+      const titleLabel = title ? `<span style="color:var(--fg);font-weight:500">${title}</span> · ` : '';
+      const expandBtn = hasDetail ? `<span class="tc-expand-btn" onclick="event.stopPropagation();document.getElementById('${vid}').classList.toggle('open')" title="Expand">&#9660;</span>` : '';
+      // Expanded detail panel
+      let detailPanel = '';
+      if (hasDetail) {
+        const rows2 = [];
+        if (vdet.date) rows2.push(`<span>${vdet.date}</span>`);
+        if (vdet.duration) rows2.push(`<span>Duration: ${vdet.duration}</span>`);
+        if (vdet.views != null) rows2.push(`<span style="color:var(--accent)">${fmt(vdet.views)} views</span>`);
+        if (vdet.likes != null) rows2.push(`<span>${fmt(vdet.likes)} likes</span>`);
+        if (vdet.comments != null) rows2.push(`<span>${fmt(vdet.comments)} comments</span>`);
+        if (vdet.shares != null) rows2.push(`<span>${fmt(vdet.shares)} shares</span>`);
+        if (vdet.saves != null) rows2.push(`<span>${fmt(vdet.saves)} saves</span>`);
+        if (vdet.reposts != null) rows2.push(`<span>${fmt(vdet.reposts)} reposts</span>`);
+        if (vdet.watch_time) rows2.push(`<span>Watch: ${vdet.watch_time}</span>`);
+        if (vdet.interactions != null) rows2.push(`<span>Interactions: ${fmt(vdet.interactions)}</span>`);
+        if (vdet.profile_activity != null) rows2.push(`<span>Profile: ${fmt(vdet.profile_activity)}</span>`);
+        // Build URL block (inline registration) — dataset carries the
+        // info saveReelUrl needs to construct the lookup key.
+        const reelUsername = vdet.username || m.username || '';
+        const reelDate = vdet.date || '';
+        const reelPos = idx + 1;
+        const reelTitle = vdet.title || '';
+        const urlBlockInner = vdet.ig_url
+          ? `<a class="url-link" href="${escHtml(vdet.ig_url)}" target="_blank" rel="noopener">View on IG &#8599;</a>
+             <button class="url-edit-icon" title="Edit URL" onclick="editReelUrl(this)">&#9998;</button>
+             <button class="url-edit-icon" title="Remove URL" onclick="removeReelUrl(this)">&#128465;</button>`
+          : `<input type="url" class="url-input" placeholder="Paste IG URL..." onkeydown="_urlInputKey(event)">
+             <button class="url-btn" onclick="saveReelUrl(this)">Save URL</button>`;
+        const urlBlock = `<div class="url-block"
+            data-kind="video"
+            data-title="${escHtml(reelTitle)}"
+            data-username="${escHtml(reelUsername)}"
+            data-date="${escHtml(reelDate)}"
+            data-position="${reelPos}"
+            data-current-url="${escHtml(vdet.ig_url || '')}">${urlBlockInner}</div>`;
+        detailPanel = `<div class="tc-detail" id="${vid}">
+          <div class="tc-detail-row">${rows2.join('')}</div>
+          <div class="tc-detail-row">${urlBlock}</div>
+        </div>`;
+      }
+      return `<div class="ext-bar-item tc-item">
+        <div class="ext-bar-label" ${hasDetail ? `style="cursor:pointer" onclick="document.getElementById('${vid}').classList.toggle('open')"` : ''}>
+          <span>${typeBadge}#${item.rank} ${titleLabel}${item.date ? item.date : ''}</span>
+          <span>${fmt(item.views)} ${expandBtn}</span>
+        </div>
+        <div class="ext-bar"><div class="ext-bar-fill ${color}" style="width:${pct}%"></div></div>
+        ${detailPanel}
+      </div>`;
+    }).join('');
+    // ── Contextual note: top content dominated by a single type that is NOT
+    // the dominant type in the views breakdown. Common case: reel-focused
+    // account whose Top 5 are all stories (stories count each view, reels
+    // deduplicate, so a single story can outscore any single reel).
+    let contextNote = '';
+    const visibleTypes = [...new Set(vd.slice(0, 5).map(i => (i.type || '').toLowerCase()))];
+    if (visibleTypes.length === 1 && visibleTypes[0] && visibleTypes[0] !== 'unknown') {
+      const dominantInTop = visibleTypes[0]; // 'reel' | 'story' | 'post'
+      const ct = (v && v.content_type) || {};
+      const reelsPct = ct.reels_pct, storiesPct = ct.stories_pct, postsPct = ct.posts_pct;
+      // Find which type dominates the overall breakdown
+      let breakdownDominant = null, breakdownDominantPct = 0;
+      [['reel', reelsPct], ['story', storiesPct], ['post', postsPct]].forEach(([t, p]) => {
+        if (p != null && p > breakdownDominantPct) {
+          breakdownDominant = t;
+          breakdownDominantPct = p;
+        }
+      });
+      // Only show note if there's a real mismatch (top items are one type,
+      // but a DIFFERENT type dominates total views by a meaningful margin)
+      if (breakdownDominant && breakdownDominant !== dominantInTop && breakdownDominantPct >= 50) {
+        const labelTop = dominantInTop === 'reel' ? 'reels' : dominantInTop === 'story' ? 'stories' : 'posts';
+        const labelDominant = breakdownDominant === 'reel' ? 'Reels' : breakdownDominant === 'story' ? 'Stories' : 'Posts';
+        const explainer = dominantInTop === 'story'
+          ? 'Stories count each view (not deduplicated), so a single popular story can outscore any individual reel even on a reel-focused account.'
+          : `These items had higher individual view counts than top ${labelDominant.toLowerCase()} for this period.`;
+        contextNote = `<div class="tc-context-note">
+          <strong>All top items are ${labelTop}.</strong>
+          ${labelDominant} account for ${breakdownDominantPct.toFixed(1)}% of total views.
+          ${explainer}
+        </div>`;
+      }
+    }
+    // actInfo ("Last new content: Xd ago") lives next to the Top Content
+    // header because that's what the metric actually measures — the last
+    // time a new item entered the Top 5 by views, not the last publication.
+    const actInfoHtml = actInfo ? `<span class="ext-title-meta">${actInfo}</span>` : '';
+    topContentBox = `<div class="ext-box" style="grid-column:1/-1"><div class="ext-title">Top Content (by views)${actInfoHtml}</div><div class="ext-bar-wrap">${rows}</div>${contextNote}</div>`;
+  }
+
+  // ── Audience demographics (Top cities + Top countries) ──
+  // Optional — only present if the account meets IG's demographics threshold
+  // and the scrolled dump captured the Audience section.
+  let audienceBox = '';
+  const aud = (data && data.audience) || (m && m.audience) || null;
+  if (aud && ((aud.top_cities && aud.top_cities.length) || (aud.top_countries && aud.top_countries.length))) {
+    let citiesHtml = '';
+    if (aud.top_cities && aud.top_cities.length) {
+      const maxPct = Math.max(...aud.top_cities.map(c => c.pct || 0)) || 1;
+      const rowsC = aud.top_cities.map(c => {
+        const w = Math.max(4, Math.round(((c.pct || 0) / maxPct) * 100));
+        return `<div class="aud-row">
+          <span class="aud-name">${escHtml(c.name)}</span>
+          <div class="aud-bar"><div class="aud-bar-fill" style="width:${w}%"></div></div>
+          <span class="aud-pct">${(c.pct || 0).toFixed(1)}%</span>
+        </div>`;
+      }).join('');
+      citiesHtml = `<div class="aud-col"><div class="aud-col-title">Top Cities</div>${rowsC}</div>`;
+    }
+    let countriesHtml = '';
+    if (aud.top_countries && aud.top_countries.length) {
+      const rowsK = aud.top_countries.map((c, i) => `<div class="aud-row aud-row-country">
+          <span class="aud-rank">#${i + 1}</span>
+          <span class="aud-name">${escHtml(c.name)}</span>
+        </div>`).join('');
+      countriesHtml = `<div class="aud-col"><div class="aud-col-title">Top Countries</div>${rowsK}</div>`;
+    }
+    audienceBox = `<div class="ext-box" style="grid-column:1/-1">
+        <div class="ext-title">Audience<span class="ext-title-meta">based on views</span></div>
+        <div class="aud-grid">${citiesHtml}${countriesHtml}</div>
+      </div>`;
+  }
+
+  return `<div class="dc-extended">
+    <div class="dc-ext-toggle" onclick="toggleExtPanel('${cid}')">
+      <span class="arr" id="arr-${cid}">&#9654;</span> Detailed Breakdown
+    </div>
+    <div class="dc-ext-panel" id="ext-${cid}">${viewsBox}${interBox}${topContentBox}${audienceBox}</div>
+  </div>`;
+}
+function toggleExtPanel(cid) {
+  const panel = document.getElementById('ext-'+cid);
+  const arr = document.getElementById('arr-'+cid);
+  if (panel) { panel.classList.toggle('open'); }
+  if (arr) { arr.classList.toggle('open'); }
+}
+function deviceLabel(did) {
+  const d = devices.find(x => x.device_id === did);
+  if (d && d.label) return d.label;
+  if (d && d.username) return '@'+d.username;
+  // Friendly fallback: "Device N"
+  var idx = devices.findIndex(x => x.device_id === did);
+  if (idx >= 0) return 'Device ' + (idx+1);
+  return did.length > 16 ? did.slice(0,8)+'…' : did;
+}
+// -- Device Filter --
+function filterDevices() {
+  var query = (document.getElementById('deviceSearch').value || '').toLowerCase().trim();
+  var scoreFilter = document.getElementById('deviceScoreFilter').value;
+  var cards = document.querySelectorAll('#deviceGrid .device-group');
+  var shown = 0, total = cards.length;
+
+  cards.forEach(function(card) {
+    var did = card.id.replace('dc-','').replace(/_/g,'');
+    // Find device by matching card id
+    var dev = devices.find(function(d) { return cssId(d.device_id) === card.id.replace('dc-',''); }) || {};
+    did = dev.device_id || did;
+
+    // Searchable text: label, device_id, all usernames
+    var accts = metricsByDevice[did] || [];
+    var searchText = [
+      dev.label || '',
+      did,
+      dev.username || '',
+      accts.map(function(m) { return m.username || ''; }).join(' ')
+    ].join(' ').toLowerCase();
+
+    var matchText = !query || searchText.indexOf(query) !== -1;
+
+    // Score filter
+    var matchScore = true;
+    if (scoreFilter) {
+      matchScore = accts.some(function(m) {
+        var k = did + '|' + (m.username || dev.username || '');
+        var g = growthData[k];
+        return g && g.score_label === scoreFilter;
+      });
+    }
+
+    var show = matchText && matchScore;
+    card.style.display = show ? '' : 'none';
+    if (show) shown++;
+  });
+
+  // Hide worker sections where no cards match
+  document.querySelectorAll('#deviceGrid .worker-section-header').forEach(function(hdr) {
+    var body = hdr.nextElementSibling;
+    if (!body) return;
+    var anyVisible = false;
+    body.querySelectorAll('.device-group').forEach(function(c) {
+      if (c.style.display !== 'none') anyVisible = true;
+    });
+    hdr.style.display = anyVisible ? '' : 'none';
+    body.style.display = anyVisible ? '' : 'none';
+  });
+
+  var fc = document.getElementById('filterCount');
+  if (query || scoreFilter) {
+    fc.textContent = shown + ' of ' + total + ' shown';
+  } else {
+    fc.textContent = '';
+  }
+}
+
+function shortTs(iso) {
+  if (!iso) return '';
+  // Handle multiple timezone formats: "Z", "+00:00", or no tz
+  let s = iso;
+  if (!/Z|[+-]\d{2}:\d{2}$/.test(s)) s += 'Z';
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return '-';
+  return (d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
+}
+async function api(path, opts={}, retries=2, timeoutMs=15000) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      const headers = opts.headers ? {...opts.headers} : {};
+      if (API_KEY) headers['X-API-Key'] = API_KEY;
+      const res = await fetch(API+path, {...opts, headers, signal: ctrl.signal});
+      clearTimeout(timer);
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      return await res.json();
+    } catch(e) {
+      clearTimeout(timer);
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+        continue;
+      }
+      throw e;
+    }
+  }
+}
+function showLoading(msg='Loading...') {
+  let el = document.getElementById('loadingOverlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loadingOverlay';
+    el.className = 'loading-overlay';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `<div class="loading-box"><div class="ld-spinner"></div><div class="ld-text">${msg}</div></div>`;
+  el.style.display = 'flex';
+}
+function hideLoading() {
+  const el = document.getElementById('loadingOverlay');
+  if (el) el.style.display = 'none';
+}
+
+// ── Chart.js defaults ──
+Chart.defaults.color = '#71717a';
+Chart.defaults.borderColor = '#2a2d3a';
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+Chart.defaults.font.size = 10;
+Chart.defaults.plugins.legend.display = false;
+
+// ── Main Load ──
+let _loadAttempt = 0;
+async function loadAll() {
+  _loadAttempt++;
+  const isFirst = _loadAttempt === 1;
+  if (isFirst) showLoading('Connecting to server...');
+  try {
+    const [devRes, metRes, histRes, growthRes, actRes] = await Promise.all([
+      api('/devices'),
+      api('/metrics/latest'),
+      api('/metrics/history?limit=500'),
+      api('/metrics/growth'),
+      api('/metrics/activity').catch(() => ({ devices: [] })),
+    ]);
+    devices = devRes.devices || [];
+    allMetrics = metRes.metrics || [];
+    latestMetrics = {};
+    metricsByDevice = {};
+    for (const m of allMetrics) {
+      const key = m.device_id + '|' + (m.username || '');
+      latestMetrics[key] = m;
+      if (!metricsByDevice[m.device_id]) metricsByDevice[m.device_id] = [];
+      metricsByDevice[m.device_id].push(m);
+    }
+    historyData = histRes.records || [];
+    growthData = {};
+    for (const g of (growthRes.devices || [])) growthData[(g.device_id || '') + '|' + (g.username || '')] = g;
+    activityData = {};
+    for (const a of (actRes.devices || [])) activityData[(a.device_id || '') + '|' + (a.username || '')] = a;
+
+    // Remove any previous error banner
+    const errBanner = document.getElementById('connError');
+    if (errBanner) errBanner.remove();
+
+    renderDeviceGrid();
+    renderStats();
+    loadSchedulerStatus();
+  } catch(e) {
+    const grid = document.getElementById('deviceGrid');
+    const isTimeout = e.name === 'AbortError';
+    const msg = isTimeout ? 'Connection timed out — server may be down or WiFi is slow' : e.message;
+    grid.innerHTML =
+      `<div class="error-banner" id="connError">${msg}<button onclick="loadAll()">Retry</button></div>`;
+  } finally {
+    hideLoading();
+  }
+}
+
+// ── Stats ──
+function renderStats() {
+  document.getElementById('statTotal').textContent = devices.length;
+  var tcd = document.getElementById('tabCountDevices');
+  if (tcd) tcd.textContent = devices.length ? '('+devices.length+')' : '';
+  document.getElementById('statEnabled').textContent = devices.filter(d=>d.enabled).length;
+  document.getElementById('statMonitored').textContent = devices.filter(d=>d.enabled&&d.monitored).length;
+  const tv = allMetrics.reduce((s,m)=>s+(m.views||0),0);
+  document.getElementById('statTotalViews').textContent = fmt(tv);
+  const checks = allMetrics.map(m=>m.checked_at).filter(Boolean).sort().reverse();
+  const lcEl = document.getElementById('statLastCheck');
+  if (checks.length) {
+    var tVal = timeAgo(checks[0]);
+    lcEl.textContent = (tVal && tVal !== '-') ? tVal : 'never';
+    // Freshness color
+    var d = checks[0]; if (typeof d==='string') { if (!d.endsWith('Z')&&!d.includes('+')) d+='Z'; }
+    var parsed = new Date(d);
+    var ago = isNaN(parsed.getTime()) ? Infinity : (Date.now() - parsed.getTime())/1000;
+    if (ago < 0) ago = 0;
+    lcEl.className = 'val ' + (ago < 3600 ? 'green' : ago < 21600 ? 'yellow' : ago === Infinity ? 'muted' : 'red');
+  } else { lcEl.textContent = 'never'; lcEl.className = 'val muted'; }
+
+  // Health banner
+  var hb = document.getElementById('healthBanner');
+  var declining = allMetrics.filter(function(m) { var k = m.device_id+'|'+m.username; var g = growthData[k]; return g && g.score_label === 'declining'; }).length;
+  var total = devices.length;
+  if (total > 0) {
+    hb.style.display = 'flex';
+    if (declining === 0) {
+      hb.style.background = 'rgba(34,197,94,0.08)'; hb.style.border = '1px solid rgba(34,197,94,0.25)'; hb.style.color = 'var(--green)';
+      hb.innerHTML = '<span style="font-size:1.2rem">✅</span> All accounts growing or stable';
+    } else {
+      hb.style.background = 'rgba(239,68,68,0.08)'; hb.style.border = '1px solid rgba(239,68,68,0.25)'; hb.style.color = 'var(--red)';
+      hb.innerHTML = '<span style="font-size:1.2rem">⚠️</span> ' + declining + ' account'+(declining!==1?'s':'')+' declining';
+    }
+  }
+}
+
+// ── Device Grid with individual charts ──
+function renderDeviceGrid() {
+  const grid = document.getElementById('deviceGrid');
+  // Destroy old charts
+  for (const id in deviceCharts) { deviceCharts[id].destroy(); delete deviceCharts[id]; }
+
+  if (!devices.length) {
+    grid.innerHTML = '<div class="empty-state">No devices registered — click <b>Discover</b> to see connected devices or <b>+ Add All</b> to register them</div>';
+    return;
+  }
+
+  let localDevices = devices.filter(d => !d._remote);
+  const remoteDevices = devices.filter(d => d._remote);
+
+  // Sort by declining score if enabled
+  if (_sortByIssues) {
+    localDevices.sort(function(a, b) {
+      return _deviceWorstScore(b.device_id) - _deviceWorstScore(a.device_id);
+    });
+  }
+
+  // Group remote devices by worker
+  const remoteByWorker = {};
+  for (const d of remoteDevices) {
+    const wid = d._worker_id || 'unknown';
+    if (!remoteByWorker[wid]) remoteByWorker[wid] = [];
+    remoteByWorker[wid].push(d);
+  }
+
+  // Build collapsible sections
+  var html = '';
+  // Local section
+  if (localDevices.length) {
+    var lcKey = 'collapse_local';
+    var lcCollapsed = localStorage.getItem(lcKey) === '1';
+    html += `<div class="worker-section-header local-worker${lcCollapsed?' collapsed':''}" onclick="toggleWorkerSection(this,'${lcKey}')">
+      <span class="ws-arrow">▼</span>
+      <h3>Local</h3>
+      <span class="worker-badge local">this machine</span>
+      <span style="font-size:0.68rem;color:var(--muted)">${localDevices.length} device${localDevices.length!==1?'s':''}</span>
+    </div>`;
+    html += `<div class="worker-section-body${lcCollapsed?' collapsed':''}" data-section="${lcKey}">`;
+    html += localDevices.map(d => renderDeviceCard(d, false)).join('');
+    html += '</div>';
+  }
+  // Remote worker sections
+  html += Object.entries(remoteByWorker).map(([wid, wDevices]) => {
+    var wKey = 'collapse_' + wid;
+    var wCollapsed = localStorage.getItem(wKey) === '1';
+    return `<div class="worker-section-header${wCollapsed?' collapsed':''}" onclick="toggleWorkerSection(this,'${wKey}')">
+      <span class="ws-arrow">▼</span>
+      <h3>Remote Worker</h3>
+      <span class="worker-badge remote">${wid}</span>
+      <span style="font-size:0.68rem;color:var(--muted)">${wDevices.length} device${wDevices.length!==1?'s':''}</span>
+    </div>`
+    + `<div class="worker-section-body${wCollapsed?' collapsed':''}" data-section="${wKey}">`
+    + wDevices.map(d => renderDeviceCard(d, true)).join('')
+    + '</div>';
+  }).join('');
+  grid.innerHTML = html;
+
+  // Render individual mini charts per account
+  devices.forEach(d => {
+    const accts = metricsByDevice[d.device_id] || [];
+    accts.forEach(m => {
+      const user = m.username || d.username || '?';
+      const mkey = cssId(d.device_id + '_' + user);
+      renderAccountChart(d.device_id, user, mkey);
+    });
+  });
+
+  // Re-apply persistent checking state after re-render
+  _reapplyCheckingState();
+}
+
+function renderDeviceCard(d, isRemote) {
+    const did = d.device_id;
+    const cid = cssId(did);
+    const en = d.enabled ? 'checked' : '';
+    const mon = d.monitored ? 'checked' : '';
+    const accts = metricsByDevice[did] || [];
+    const acctCount = accts.length || (d.usernames || []).length || 1;
+    const remoteCls = isRemote ? ' remote-device' : '';
+
+    const labelAttr = 'onblur="updateField(\''+did+'\',\'label\',this.value.trim())" onkeydown="if(event.key===\'Enter\')this.blur()"';
+    var devIdx = devices.indexOf(d) + 1;
+    var friendlyPlaceholder = 'Device ' + devIdx + ' — click to name';
+
+    // ── Device Group Header ──
+    let html = '<div class="device-group'+remoteCls+'" id="dc-'+cid+'" data-device-id="'+did+'">'
+      + '<div class="dg-header">'
+      + '<div class="dg-header-left">'
+      + '<input class="dg-label-input" value="'+(d.label||'')+'" placeholder="'+friendlyPlaceholder+'" '+labelAttr+'>'
+      + '<span class="dg-device-id-sub" title="Serial: '+did+'">SN '+shortId(did)+'</span>'
+      + '<span class="dg-account-count">'+acctCount+' account'+(acctCount!==1?'s':'')+'</span>'
+      + '</div>'
+      + '<div class="dg-header-right">';
+
+    html += '<span class="toggle-label"><span class="tl-text">Enabled</span><label class="toggle" title="Include this device in scheduled checks"><input type="checkbox" '+en+' onchange="toggleEnable(\''+did+'\',this.checked)"><span class="sl"></span></label></span>'
+      + '<span class="toggle-label"><span class="tl-text">Monitor</span><label class="toggle" title="Track growth metrics for this device" '+((!d.enabled)?'style="opacity:0.3"':'')+'><input type="checkbox" '+mon+' '+(!d.enabled?'disabled':'')+' onchange="toggleMonitor(\''+did+'\',this.checked)"><span class="sl"></span></label></span>';
+
+    html += '<span class="dg-check-status"><span class="btn-spinner"></span> Checking…</span>'
+      + '<button class="btn sm btn-check" onclick="forceCheckSingle(\''+did+'\',event)">&#9654; Check</button>';
+
+    if (!isRemote) {
+      html += '<button class="btn sm ghost" onclick="deleteDevice(\''+did+'\')" title="Delete">&#10005;</button>';
+    }
+
+    html += '</div></div>';
+
+    // ── Controls row ──
+    // Preserve {username, enabled} shape so tags can reflect archived state and
+    // be clickable to toggle (matches status's UX). Plain-string legacy entries
+    // default to enabled=true.
+    var uList = (d.usernames || []).map(function(u){
+      return typeof u === 'object'
+        ? {username: u.username, enabled: u.enabled !== false}
+        : {username: u, enabled: true};
+    }).filter(function(x){ return x.username; });
+    var uTags = '';
+    if (d.username) {
+      var primaryEntry = uList.find(function(x){ return x.username === d.username; });
+      var primaryEnabled = primaryEntry ? primaryEntry.enabled : true;
+      var primarySty = !primaryEnabled ? ';opacity:0.4;text-decoration:line-through' : '';
+      var primaryTtl = primaryEnabled ? 'Enabled — click to archive' : 'Archived — click to restore';
+      uTags += '<span class="acct-tag acct-tag-primary" onclick="toggleAccount(\''+did+'\',\''+d.username+'\','+(!primaryEnabled)+')" title="'+primaryTtl+'" style="cursor:pointer'+primarySty+'">@'+d.username+'</span>';
+    }
+    uList.filter(function(u){ return u.username !== d.username; }).forEach(function(u){
+      var sty = !u.enabled ? ';opacity:0.4;text-decoration:line-through' : '';
+      var ttl = u.enabled ? 'Enabled — click to archive' : 'Archived — click to restore';
+      uTags += '<span class="acct-tag" onclick="toggleAccount(\''+did+'\',\''+u.username+'\','+(!u.enabled)+')" title="'+ttl+'" style="cursor:pointer'+sty+'">@'+u.username+'</span>';
+    });
+    html += '<div class="dg-controls">'
+      + '<div class="acct-tags">' + uTags
+      + '<button class="acct-btn-manage" onclick="openAccountsModal(\''+did+'\')">Manage</button>'
+      + '</div>';
+    if (!isRemote) {
+      html += '<input style="flex:1;min-width:180px" value="'+(d.proxy_rotate_url||'')+'" onblur="updateField(\''+did+'\',\'proxy_rotate_url\',this.value)" onkeydown="if(event.key===\'Enter\')this.blur()" placeholder="🔄 proxy rotate URL">';
+    }
+    html += '</div>';
+
+    // ── Device-level notes ──
+    // Free-form text. Saved onblur. Empty string is accepted (clears notes).
+    var notesVal = d.notes || '';
+    html += '<div class="dg-notes">'
+      + '<textarea placeholder="📝 Notes about this device — only visible here, not synced anywhere else" '
+      + 'onblur="updateField(\''+did+'\',\'notes\',this.value)" '
+      + 'onkeydown="if(event.key===\'Enter\'&amp;&amp;event.ctrlKey)this.blur()">' + escHtml(notesVal) + '</textarea>'
+      + '</div>';
+
+    // ── Manual-review banner ──
+    // Backend marks accounts with error="account_state:<state>:@<username>" when
+    // it detects checkpoint / banned / expired on the device. Any such error in
+    // any account => show the banner once at the device level, with the action
+    // the human needs to take for each state.
+    var _stateAction = {
+      checkpoint: 'enter verification code on the phone',
+      expired:    're-login required on the phone',
+      banned:     'account disabled by Instagram',
+    };
+    var flagged = (accts || []).map(function(m){
+      var e = (m && m.error) || '';
+      if (typeof e !== 'string' || !e.startsWith('account_state:')) return null;
+      var parts = e.split(':');                       // ['account_state', state, '@user...']
+      return { state: parts[1] || 'unknown', who: (parts[2] || '').replace(/^@/, '') || (m.username || '?') };
+    }).filter(Boolean);
+    if (flagged.length) {
+      var pillStr = flagged.map(function(f){
+        var action = _stateAction[f.state] || 'manual review required';
+        return '<code>@' + escHtml(f.who) + '</code> in ' + escHtml(f.state)
+             + ' — <span class="dg-review-action">' + escHtml(action) + '</span>';
+      }).join('<br>');
+      html += '<div class="dg-review-banner">'
+        + '<span class="dg-review-icon">⚠️</span>'
+        + '<span>Manual review needed</span>'
+        + '<span class="dg-review-accts">' + pillStr + '</span>'
+        + '</div>';
+    }
+
+    // ── Account Cards ──
+    if (accts.length === 0) {
+      // No metrics yet — show placeholder
+      html += `<div class="dg-accounts"><div class="dg-account-card">
+        <div class="dg-acct-top"><span class="dg-acct-username">@${d.username || '?'}</span></div>
+        <div style="color:var(--muted);font-size:0.78rem;padding:10px 0">No metrics yet — run a check</div>
+      </div></div>`;
+    } else {
+      html += `<div class="dg-accounts">`;
+      accts.forEach(m => {
+        const user = m.username || d.username || '?';
+        const mkey = cssId(did + '_' + user);
+        const gkey = did + '|' + user;
+        const g = growthData[gkey] || {};
+        const dl = g.deltas || {};
+        const mdl = m.ui_model==='B' ? '<span class="badge b">B</span>'
+                  : m.ui_model==='A' ? '<span class="badge a">A</span>'
+                  : '<span class="badge none">-</span>';
+        const dr = m.date_range || '';
+        const ago = m.checked_at ? timeAgo(m.checked_at) : 'never';
+        const sb = scoreBadge(g);
+        const act = activityData[gkey] || {};
+        const actBadge = act.status ? `<span class="activity-badge ${act.status}">${act.status}</span>` : '';
+        const actInfo = act.last_new_content_ago != null ? `Last new content: ${act.last_new_content_ago}d ago` : '';
+        // account_state errors are already shown in the device-level banner above;
+        // skip the per-account red line to avoid duplication. Skipped/cascaded
+        // errors from other accounts in the same device are also hidden — they're
+        // a consequence of the manual-review flag, not an actionable error.
+        var _isAcctState = m.error && (
+          m.error.indexOf('account_state:') === 0 ||
+          m.error.indexOf('Skipped: device flagged for manual review') === 0
+        );
+        const errHtml = (m.error && !_isAcctState)
+          ? `<div class="dg-acct-error">${escHtml(_humanizeError(m.error))}</div>`
+          : '';
+
+        html += `<div class="dg-account-card">
+          <div class="dg-acct-top">
+            <div>
+              <span class="dg-acct-username">@${user}</span>
+            </div>
+            <div class="dg-acct-badges">${actBadge} ${sb} ${mdl}</div>
+          </div>
+          ${errHtml}
+          <div class="dc-metrics">
+            <div class="dc-m"><div class="n">${fmt(m.views)}</div><div class="l">Views</div>${deltaHtml(dl,'views')}</div>
+            <div class="dc-m"><div class="n">${fmt(m.interactions)}</div><div class="l">Interact.</div>${deltaHtml(dl,'interactions')}</div>
+            <div class="dc-m"><div class="n">${fmt(m.new_followers)}</div><div class="l">New Followers</div>${deltaHtml(dl,'new_followers')}</div>
+            <div class="dc-m"><div class="n">${fmt(m.accounts_reached)}</div><div class="l">Reached</div>${deltaHtml(dl,'accounts_reached')}</div>
+          </div>
+          ${renderExtended(m, mkey, actInfo)}
+          <div class="dc-chart-wrap" id="cwrap-${mkey}"></div>
+          <div class="dc-foot">
+            <div class="dc-meta">${dr?dr+' · ':''}${ago}</div>
+            <div class="dc-actions">
+              <button class="btn-viral" onclick="toggleDeviceViral('${did}','${cid}')">Viral</button>
+            </div>
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    // Viral panel at device level
+    html += `<div class="dc-viral-panel" id="vp-${cid}">
+      <div class="dc-viral-list" id="vl-${cid}">
+        <div class="empty-state" style="padding:10px;font-size:0.72rem">Click "Viral" to load alerts</div>
+      </div>
+    </div>`;
+
+    html += `</div>`;
+    return html;
+}
+
+// Re-apply .checking after a re-render: union of backend busy + pending clicks.
+function _reapplyCheckingState() {
+  const all = new Set([..._busyDevices, ..._pendingClick]);
+  document.querySelectorAll('.device-group[data-device-id]').forEach(function(el) {
+    el.classList.toggle('checking', all.has(el.dataset.deviceId));
+  });
+}
+
+function cssId(did) { return did.replace(/[^a-zA-Z0-9_-]/g, '_'); }
+
+function renderAccountChart(did, username, mkey) {
+  const wrap = document.getElementById('cwrap-'+mkey);
+  if (!wrap) return;
+
+  // Filter history for this device + username
+  const recs = historyData.filter(r => r.device_id===did && (r.username||'')===(username||'') && r.success).sort((a,b)=>a.checked_at.localeCompare(b.checked_at));
+  if (recs.length < 2) {
+    wrap.innerHTML = '<div class="dc-chart-empty">Run more checks to see trends</div>';
+    return;
+  }
+
+  const canvas = document.createElement('canvas');
+  wrap.appendChild(canvas);
+
+  const labels = recs.map(r => shortTs(r.checked_at));
+  const chart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label:'Views', data: recs.map(r=>r.views||0), borderColor:'#6366f1', backgroundColor:'#6366f122', fill:true, tension:0.4, pointRadius:2, borderWidth:1.5 },
+        { label:'Interact.', data: recs.map(r=>r.interactions||0), borderColor:'#22c55e', backgroundColor:'transparent', fill:false, tension:0.4, pointRadius:0, borderWidth:1, borderDash:[3,3] },
+        { label:'Followers', data: recs.map(r=>r.new_followers||0), borderColor:'#3b82f6', backgroundColor:'transparent', fill:false, tension:0.4, pointRadius:0, borderWidth:1, borderDash:[3,3] },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position:'top', labels:{ boxWidth:8, padding:6, font:{size:9} } },
+        tooltip: { callbacks:{ label: ctx=>`${ctx.dataset.label}: ${fmtShort(ctx.raw)}` } },
+      },
+      scales: {
+        x: { display: true, grid:{display:false}, ticks:{maxTicksLimit:4, font:{size:8}, color:'#555'} },
+        y: { display: true, beginAtZero:true, grid:{color:'#2a2d3a44'}, ticks:{maxTicksLimit:3, callback:v=>fmtShort(v), font:{size:8}} },
+      },
+      interaction: { mode:'index', intersect:false },
+    },
+  });
+  deviceCharts[mkey] = chart;
+}
+
+// ── Discover devices (show all ADB without adding) ──
+async function discoverDevices() {
+  const modal = document.getElementById('discoverModal');
+  modal.style.display = '';
+  modal.innerHTML = '<div class="modal-bg" onclick="closeDiscover(event)"><div class="modal"><h2>Scanning...</h2></div></div>';
+
+  try {
+    const data = await api('/devices/discover');
+    const all = [
+      ...(data.online_registered||[]).map(d=>({...d, cat:'registered'})),
+      ...(data.offline_registered||[]).map(d=>({...d, cat:'offline'})),
+      ...(data.unregistered||[]).map(d=>({...d, cat:'new'})),
+    ];
+
+    const regIds = new Set((data.online_registered||[]).concat(data.offline_registered||[]).map(d=>d.device_id));
+
+    let html = '<button class="close" onclick="closeDiscover()">&times;</button>';
+    html += `<h2>Connected Devices (${all.length})</h2>`;
+
+    if (!all.length) {
+      html += '<div class="empty-state">No ADB devices found</div>';
+    } else {
+      html += all.map(d => {
+        const stateClass = d.cat==='registered' ? 'registered' : d.cat==='new' ? 'online' : 'offline';
+        const stateLabel = d.cat==='registered' ? 'Registered' : d.cat==='new' ? 'Available' : 'Offline';
+        const addBtn = d.cat==='new'
+          ? `<button class="btn sm" onclick="addSingleDevice('${d.device_id}')">Add</button>`
+          : '';
+        return `<div class="disc-item">
+          <div>
+            <div class="did">${d.device_id}</div>
+            <div class="dmodel">${d.model||d.username||''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="dstate ${stateClass}">${stateLabel}</span>
+            ${addBtn}
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    modal.innerHTML = `<div class="modal-bg" onclick="closeDiscover(event)"><div class="modal" onclick="event.stopPropagation()">${html}</div></div>`;
+  } catch(e) {
+    modal.innerHTML = `<div class="modal-bg" onclick="closeDiscover(event)"><div class="modal">
+      <button class="close" onclick="closeDiscover()">&times;</button>
+      <h2>Error</h2><p style="color:var(--red)">${e.message}</p></div></div>`;
+  }
+}
+
+function closeDiscover(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('discoverModal').style.display = 'none';
+}
+
+async function addSingleDevice(did) {
+  try {
+    await api(`/devices?device_id=${encodeURIComponent(did)}`, { method:'POST' });
+    await loadAll();
+    closeDiscover();
+  } catch(e) { alert('Error: '+e.message); }
+}
+
+// ── Device Actions ──
+async function toggleEnable(id,val) { await api(`/devices/${id}/${val?'enable':'disable'}`,{method:'POST'}); await loadAll(); }
+async function toggleMonitor(id,val) { if(val) await api(`/devices/${id}/monitor`,{method:'POST'}); else await api(`/devices/${id}/monitor`,{method:'DELETE'}); await loadAll(); }
+async function updateField(id,field,value) { await api(`/devices/${id}?${field}=${encodeURIComponent(value)}`,{method:'PUT'}); }
+
+// ── Accounts Manager Modal ──
+function openAccountsModal(deviceId) {
+  const d = devices.find(x => x.device_id === deviceId);
+  if (!d) return;
+  const primary = d.username || '';
+  // Preserve {username, enabled} shape — was being lost by .map() to plain strings.
+  // Legacy plain-string usernames default to enabled=true.
+  const usernames = (d.usernames || []).map(u => typeof u === 'object'
+    ? { username: u.username, enabled: u.enabled !== false }
+    : { username: u, enabled: true }).filter(x => x.username);
+
+  let el = document.getElementById('acctModalWrap');
+  if (!el) { el = document.createElement('div'); el.id = 'acctModalWrap'; document.body.appendChild(el); }
+
+  // Track whether archived section is expanded across renders
+  let archivedExpanded = false;
+
+  function render() {
+    const active = usernames.filter(u => u.enabled);
+    const archived = usernames.filter(u => !u.enabled);
+    const archivedSection = archived.length === 0 ? '' : `
+      <button class="am-archived-toggle${archivedExpanded?' expanded':''}" onclick="amToggleArchived()">
+        <span><span class="am-arrow">&#9656;</span> Archived (${archived.length})</span>
+        <span style="font-size:0.62rem;opacity:0.7">${archivedExpanded?'hide':'show'}</span>
+      </button>
+      ${archivedExpanded ? `<div class="am-archived-list">
+        ${archived.map(u => `<div class="am-account-item archived">
+          <span class="am-name">@${u.username}</span>
+          <div class="am-actions">
+            <button class="am-unarchive" onclick="amUnarchiveAccount('${deviceId}','${u.username}')" title="Restore this account">Unarchive</button>
+          </div>
+        </div>`).join('')}
+      </div>` : ''}`;
+
+    el.innerHTML = `<div class="acct-modal-bg" onclick="if(event.target===this)closeAccountsModal()">
+      <div class="acct-modal" onclick="event.stopPropagation()">
+        <button class="am-close" onclick="closeAccountsModal()">&times;</button>
+        <h3>Manage Accounts</h3>
+        <div class="am-device">${deviceId}</div>
+
+        <div class="am-section">
+          <div class="am-section-title">Primary Account</div>
+          <div class="am-primary-row">
+            <input id="am-primary-input" value="${primary}" placeholder="@username">
+            <button class="btn sm" onclick="amSavePrimary('${deviceId}')">Save</button>
+          </div>
+        </div>
+
+        <div class="am-section">
+          <div class="am-section-title">Active accounts (${active.length})</div>
+          <div class="am-account-list">
+            ${active.length === 0 ? '<div class="am-empty">No active accounts</div>' : ''}
+            ${active.map((u, i) => `<div class="am-account-item">
+              <span class="am-name">@${u.username}${u.username === primary ? ' <span style="font-size:0.6rem;color:var(--green);font-weight:400">(primary)</span>' : ''}</span>
+              <div class="am-actions">
+                <button class="am-archive" onclick="amArchiveAccount('${deviceId}','${u.username}')" title="Archive — hide from checks but keep history">Archive</button>
+                <button class="am-remove" onclick="amRemoveAccount('${deviceId}','${u.username}')" title="Remove permanently">&times;</button>
+              </div>
+            </div>`).join('')}
+          </div>
+          <div class="am-add-row">
+            <input id="am-new-input" placeholder="@new_username" onkeydown="if(event.key==='Enter')amAddAccount('${deviceId}')">
+            <button onclick="amAddAccount('${deviceId}')">+ Add</button>
+          </div>
+          ${archivedSection}
+        </div>
+      </div>
+    </div>`;
+    el.style.display = 'block';
+  }
+
+  function toggleArchived() {
+    archivedExpanded = !archivedExpanded;
+    render();
+  }
+
+  // Store state on the element so sub-functions can access it
+  el._state = { deviceId, primary, usernames, render, toggleArchived };
+  render();
+}
+
+function amToggleArchived() {
+  const el = document.getElementById('acctModalWrap');
+  if (el && el._state && el._state.toggleArchived) el._state.toggleArchived();
+}
+
+async function amArchiveAccount(deviceId, username) {
+  await api(`/devices/${deviceId}/accounts/${username}/toggle?enabled=false`, {method:'PUT'});
+  const el = document.getElementById('acctModalWrap');
+  if (el && el._state) {
+    const u = el._state.usernames.find(x => x.username === username);
+    if (u) u.enabled = false;
+    el._state.render();
+  }
+  await loadAll();
+}
+
+// Global one-click toggle for clickable tags in the device card.
+// Mirrors status's toggleAccount — click a tag to archive/unarchive.
+async function toggleAccount(deviceId, username, enabled) {
+  await api(`/devices/${deviceId}/accounts/${username}/toggle?enabled=${enabled}`, {method:'PUT'});
+  await loadAll();
+}
+
+async function amUnarchiveAccount(deviceId, username) {
+  await api(`/devices/${deviceId}/accounts/${username}/toggle?enabled=true`, {method:'PUT'});
+  const el = document.getElementById('acctModalWrap');
+  if (el && el._state) {
+    const u = el._state.usernames.find(x => x.username === username);
+    if (u) u.enabled = true;
+    el._state.render();
+  }
+  await loadAll();
+}
+
+function closeAccountsModal() {
+  const el = document.getElementById('acctModalWrap');
+  if (el) { el.style.display = 'none'; el.innerHTML = ''; }
+}
+
+async function amSavePrimary(deviceId) {
+  const el = document.getElementById('acctModalWrap');
+  const input = document.getElementById('am-primary-input');
+  const val = (input.value || '').trim().replace(/^@/, '');
+  if (!val) return;
+  await updateField(deviceId, 'username', val);
+  el._state.primary = val;
+  // Also ensure it's in the usernames list as enabled
+  if (!el._state.usernames.find(x => x.username === val)) {
+    el._state.usernames.unshift({username: val, enabled: true});
+    await updateField(deviceId, 'usernames', el._state.usernames.map(x => x.username).join(','));
+  }
+  await loadAll();
+  el._state.render();
+}
+
+async function amAddAccount(deviceId) {
+  const el = document.getElementById('acctModalWrap');
+  const input = document.getElementById('am-new-input');
+  const val = (input.value || '').trim().replace(/^@/, '');
+  if (!val) return;
+  if (el._state.usernames.find(x => x.username === val)) { input.value = ''; return; }
+  el._state.usernames.push({username: val, enabled: true});
+  await updateField(deviceId, 'usernames', el._state.usernames.map(x => x.username).join(','));
+  await loadAll();
+  el._state.render();
+}
+
+async function amRemoveAccount(deviceId, username) {
+  const el = document.getElementById('acctModalWrap');
+  if (!confirm(`Remove @${username} from this device? (Use Archive instead if you want to keep history.)`)) return;
+  const idx = el._state.usernames.findIndex(x => x.username === username);
+  if (idx < 0) return;
+  const removed = el._state.usernames.splice(idx, 1)[0];
+  // Backend expects comma-separated active usernames (legacy format).
+  // Send only the username strings — backend will rebuild the dict array.
+  await updateField(deviceId, 'usernames', el._state.usernames.map(x => x.username).join(','));
+  // If removed account was the primary, reassign or clear
+  if (removed && removed.username === el._state.primary) {
+    const newPrimary = el._state.usernames.length > 0 ? el._state.usernames[0].username : '';
+    await updateField(deviceId, 'username', newPrimary);
+    el._state.primary = newPrimary;
+  }
+  await loadAll();
+  el._state.render();
+}
+async function deleteDevice(id) { if(!confirm(`Delete ${id}?`)) return; await api(`/devices/${id}`,{method:'DELETE'}); await loadAll(); }
+async function refreshDevices() { await api('/devices/refresh',{method:'POST'}); await loadAll(); }
+async function addAllDevices() { if(!confirm('Add all discovered devices?')) return; await api('/devices/refresh?auto_add=true',{method:'POST'}); await loadAll(); }
+async function removeAllDevices() {
+  if(!confirm('Remove ALL devices? This cannot be undone.')) return;
+  for (const d of devices) { await api(`/devices/${d.device_id}`,{method:'DELETE'}); }
+  await loadAll();
+}
+
+async function forceCheckAll(e) {
+  const btn = e.target;
+  btn.disabled=true;
+  btn.innerHTML='<span class="btn-spinner"></span> Running...';
+  try {
+    await api('/check/force?background=true',{method:'POST'});
+    // Optimistic: mark monitored devices as pending. pollActivity will
+    // confirm with the backend within ~10s.
+    for (const d of devices) {
+      if (d.monitored && d.enabled) _pendingClick.add(d.device_id);
+    }
+    _reapplyCheckingState();
+    btn.innerHTML='&#10003; Started!';
+    setTimeout(()=>{ btn.disabled=false; btn.innerHTML='Run All'; }, 3000);
+  } catch(err) { btn.disabled=false; btn.innerHTML='Run All'; alert('Error: '+err.message); }
+}
+
+async function forceCheckSingle(id, e) {
+  // Already checking? Skip the click. Backend's busy state takes precedence.
+  if (_busyDevices.has(id) || _pendingClick.has(id)) return;
+  const cid = cssId(id);
+  const card = document.getElementById('dc-'+cid);
+  const btn = e.target;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="btn-spinner"></span> Starting…';
+  btn.classList.add('btn-loading');
+  try {
+    // background=true: backend dispatcha la tarea y retorna de inmediato.
+    // El visual de checking se controla por pollActivity (cada 10s) leyendo
+    // el lock real del orchestrator; _pendingClick es solo el puente hasta
+    // el primer poll que confirme.
+    await api(`/check/force/${id}?background=true`,{method:'POST'});
+    _pendingClick.add(id);
+    if (card) card.classList.add('checking');
+  } catch(err) {
+    if (err.message && err.message.includes('409')) {
+      // Already running on backend — reflect it locally
+      _pendingClick.add(id);
+      if (card) card.classList.add('checking');
+    } else {
+      alert('Error: '+err.message);
+    }
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '&#9654; Check';
+    btn.classList.remove('btn-loading');
+  }
+}
+
+// ── Scheduler ──
+async function loadSchedulerStatus() {
+  try {
+    const s = await api('/scheduler/status');
+    const st = document.getElementById('schedStatus');
+    const btnS = document.getElementById('btnSchedStart');
+    const btnP = document.getElementById('btnSchedStop');
+    if (s.running) {
+      st.textContent = `Next: ${s.next_run?new Date(s.next_run).toLocaleTimeString():'?'}`;
+      btnS.style.display='none'; btnP.style.display='';
+    } else {
+      st.textContent = 'Stopped';
+      btnS.style.display=''; btnP.style.display='none';
+    }
+    document.getElementById('schedTime').value = s.daily_time||'08:00';
+  } catch(e){}
+}
+async function startScheduler() { const t=document.getElementById('schedTime').value; const[h,m]=t.split(':').map(Number); await api(`/scheduler/start?hour=${h}&minute=${m}`,{method:'POST'}); loadSchedulerStatus(); }
+async function stopScheduler() { await api('/scheduler/stop',{method:'POST'}); loadSchedulerStatus(); }
+
+// ── Tab switching ──
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector(`.tab-btn[onclick="switchTab('${tab}')"]`).classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+  if (tab === 'viral') loadViralData();
+  if (tab === 'trials') loadTrialReels();
+}
+
+// ── Viral Data ──
+let viralGlobal = [];
+let viralHistory = [];
+let viralChartInstance = null;
+
+function viralTypeIcon(type) {
+  if (!type) return '&#9632;';
+  const t = type.toLowerCase();
+  if (t === 'reel' || t === 'reels') return '&#9654;';
+  if (t === 'story' || t === 'stories') return '&#9711;';
+  return '&#9632;';
+}
+
+function viralStatusClass(score) {
+  if (score >= 70) return 'viral';
+  if (score >= 50) return 'trending';
+  return 'rising';
+}
+
+function viralStatusLabel(score) {
+  if (score >= 70) return 'viral';
+  if (score >= 50) return 'trending';
+  return 'rising';
+}
+
+function renderViralCard(a) {
+  const cls = viralStatusClass(a.viral_score);
+  const signals = (a.signals || []).map(s => `<span>${s}</span>`).join('');
+  const prevViews = a.previous_views != null ? fmt(a.previous_views) : '-';
+  const growth = a.previous_views && a.previous_views > 0
+    ? `+${Math.round(((a.current_views - a.previous_views) / a.previous_views) * 100)}%`
+    : '';
+  const accel = a.acceleration;
+  const accelHtml = accel ? `<span style="font-size:0.6rem;background:var(--bg);padding:2px 6px;border-radius:3px;margin-top:3px;display:inline-block">${accel.is_accelerating ? '&#9889; Accelerating' : '&#8593; Consistent'}: +${accel.total_growth_pct}% over ${accel.snapshots} checks</span>` : '';
+  return `<div class="viral-card ${cls}">
+    <div class="viral-head">
+      <span class="viral-user">@${a.username || a.device_id}</span>
+      <span class="viral-badge ${cls}">${viralStatusLabel(a.viral_score)}</span>
+    </div>
+    <div class="viral-content">
+      <div class="viral-type-icon">${viralTypeIcon(a.content_type || a.type)}</div>
+      <div class="viral-details">
+        <div class="vid-title">${a.content_id || (a.content_type||a.type||'Content')}</div>
+        <div class="vid-date">${a.content_date || a.date || ''} · Rank #${a.rank||'-'}</div>
+      </div>
+    </div>
+    <div class="viral-stats">
+      <div class="vs-item"><span class="vs-val">${fmt(a.current_views)}</span><span class="vs-label">Views</span></div>
+      <div class="vs-item"><span class="vs-val">${prevViews}</span><span class="vs-label">Previous</span></div>
+      <div class="vs-item"><span class="vs-val" style="color:${cls==='viral'?'var(--red)':cls==='trending'?'var(--orange)':'var(--yellow)'}">${a.viral_score}</span><span class="vs-label">Score</span></div>
+      ${growth ? `<div class="vs-item"><span class="vs-val" style="color:var(--green)">${growth}</span><span class="vs-label">Growth</span></div>` : ''}
+    </div>
+    ${accelHtml}
+    ${signals ? `<div class="viral-signals">${signals}</div>` : ''}
+    <div class="viral-score-bar"><div class="viral-score-fill ${cls}" style="width:${a.viral_score}%"></div></div>
+  </div>`;
+}
+
+function renderViralChart(records) {
+  // Group alerts by date (YYYY-MM-DD)
+  const dateCounts = {};  // date → {viral:0, trending:0, rising:0}
+  const days = parseInt(document.getElementById('vfDays').value) || 30;
+  // Generate last N days as labels
+  const labels = [];
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    labels.push(key);
+    dateCounts[key] = { viral: 0, trending: 0, rising: 0 };
+  }
+  for (const r of records) {
+    // Prefer checked_at (the actual IG check moment); fall back to created_at
+    // for legacy rows that weren't populated with checked_at. Using created_at
+    // first was misleading because hub-forwarded alerts get a fresh created_at
+    // even when the underlying check happened days earlier.
+    const ca = r.checked_at || r.created_at || '';
+    const dateKey = ca.substring(0, 10);
+    if (dateCounts[dateKey]) {
+      const sc = r.viral_score || 0;
+      if (sc >= 70) dateCounts[dateKey].viral++;
+      else if (sc >= 50) dateCounts[dateKey].trending++;
+      else dateCounts[dateKey].rising++;
+    }
+  }
+
+  const shortLabels = labels.map(l => { const parts = l.split('-'); return parseInt(parts[1])+'/'+parseInt(parts[2]); });
+
+  if (viralChartInstance) viralChartInstance.destroy();
+  const canvas = document.getElementById('viralChart');
+  viralChartInstance = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: shortLabels,
+      datasets: [
+        { label: 'Viral', data: labels.map(l => dateCounts[l].viral), backgroundColor: '#ef4444' },
+        { label: 'Trending', data: labels.map(l => dateCounts[l].trending), backgroundColor: '#f97316' },
+        { label: 'Rising', data: labels.map(l => dateCounts[l].rising), backgroundColor: '#eab308' },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'top', labels: { boxWidth: 8, padding: 8, font: { size: 9 } } },
+      },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { maxTicksLimit: 10, font: { size: 8 } } },
+        y: { stacked: true, beginAtZero: true, grid: { color: '#2a2d3a44' }, ticks: { stepSize: 1, font: { size: 8 } } },
+      },
+    },
+  });
+}
+
+function populateAccountFilter() {
+  const sel = document.getElementById('vfAccount');
+  const existing = new Set();
+  // Keep first option
+  while (sel.options.length > 1) sel.remove(1);
+  const allAlerts = [...viralGlobal, ...viralHistory];
+  for (const a of allAlerts) {
+    const user = a.username || a.device_id;
+    if (user && !existing.has(user)) {
+      existing.add(user);
+      const opt = document.createElement('option');
+      opt.value = user;
+      opt.textContent = '@' + user;
+      sel.appendChild(opt);
+    }
+  }
+}
+
+function resetViralFilters() {
+  document.getElementById('vfStatus').value = 'all';
+  document.getElementById('vfAccount').value = 'all';
+  document.getElementById('vfDays').value = '30';
+  loadViralData();
+}
+
+async function clearAllViralAlerts() {
+  var total = viralGlobal.length + viralHistory.length;
+  if (!confirm('Delete all ' + total + ' viral alerts? This clears the hub AND fans out the delete to every connected worker. This cannot be undone.')) return;
+  try {
+    // Hub first (always present)
+    var hub = await api('/metrics/viral/alerts', { method: 'DELETE' });
+    var hubDeleted = (hub && hub.deleted) || 0;
+
+    // Workers (no-op if none connected). Use absolute path because this is
+    // outside the /api/v1/growth scope.
+    var workersDeleted = 0;
+    var workersFailed = 0;
+    try {
+      var headers = {}; var k = localStorage.getItem('ig_api_key') || '';
+      if (k) headers['X-API-Key'] = k;
+      var resp = await fetch('/api/v1/workers/viral', { method: 'DELETE', headers: headers });
+      if (resp.ok) {
+        var body = await resp.json();
+        workersDeleted = body.total_deleted || 0;
+        var wmap = body.workers || {};
+        Object.keys(wmap).forEach(function(w){ if (!wmap[w].ok) workersFailed++; });
+      }
+    } catch(e) { /* best effort */ }
+
+    viralGlobal = [];
+    viralHistory = [];
+    document.getElementById('viralGlobalGrid').innerHTML = '<div class="empty-state" style="grid-column:1/-1;padding:30px 0;text-align:center">😴 No viral content detected yet — keep posting!</div>';
+    document.getElementById('viralHistoryGrid').innerHTML = '<div class="empty-state" style="grid-column:1/-1;padding:20px 0;text-align:center">No alert history.</div>';
+    var countEl = document.getElementById('viralCount');
+    if (countEl) countEl.textContent = '';
+    if (viralChartInstance) { viralChartInstance.destroy(); viralChartInstance = null; }
+
+    var msg = 'Deleted ' + hubDeleted + ' on hub';
+    if (workersDeleted) msg += ' + ' + workersDeleted + ' on workers';
+    if (workersFailed) msg += ' (' + workersFailed + ' worker(s) failed)';
+    alert(msg + '.');
+  } catch(e) {
+    alert('Failed to clear alerts: ' + e.message);
+  }
+}
+
+function applyViralFilters() {
+  const statusFilter = document.getElementById('vfStatus').value;
+  const accountFilter = document.getElementById('vfAccount').value;
+
+  const filterFn = (a) => {
+    const sc = a.viral_score || 0;
+    const st = sc >= 70 ? 'viral' : sc >= 50 ? 'trending' : 'rising';
+    if (statusFilter !== 'all' && st !== statusFilter) return false;
+    if (accountFilter !== 'all') {
+      const user = a.username || a.device_id;
+      if (user !== accountFilter) return false;
+    }
+    return true;
+  };
+
+  const filteredGlobal = viralGlobal.filter(filterFn);
+  const filteredHistory = viralHistory.filter(filterFn);
+
+  const globalGrid = document.getElementById('viralGlobalGrid');
+  if (filteredGlobal.length === 0) {
+    globalGrid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;padding:30px 0;text-align:center">😴 No viral content detected yet — keep posting!</div>';
+  } else {
+    globalGrid.innerHTML = filteredGlobal.map(a => renderViralCard(a)).join('');
+  }
+
+  const histGrid = document.getElementById('viralHistoryGrid');
+  if (filteredHistory.length === 0) {
+    histGrid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;padding:20px 0;text-align:center">No alert history for this filter.</div>';
+  } else {
+    histGrid.innerHTML = filteredHistory.map(a => renderViralCard(a)).join('');
+  }
+}
+
+async function loadViralData() {
+  const days = document.getElementById('vfDays') ? parseInt(document.getElementById('vfDays').value) : 30;
+  try {
+    const [topRes, histRes] = await Promise.all([
+      api(`/metrics/viral/top?limit=7&days=${days}`),
+      api(`/metrics/viral/history?limit=200&days=${days}`),
+    ]);
+    viralGlobal = topRes.alerts || [];
+    viralHistory = histRes.records || [];
+
+    // Update counter badge
+    const countEl = document.getElementById('viralCount');
+    if (viralGlobal.length > 0) countEl.textContent = `(${viralGlobal.length})`;
+    else countEl.textContent = '';
+
+    // Populate account filter
+    populateAccountFilter();
+
+    // Render chart with history data
+    renderViralChart(viralHistory);
+
+    // Apply current filters to render cards
+    applyViralFilters();
+  } catch(e) {
+    const isTimeout = e.name === 'AbortError';
+    const msg = isTimeout ? 'Connection timed out' : e.message;
+    document.getElementById('viralGlobalGrid').innerHTML =
+      `<div class="error-banner">${msg}<button onclick="loadViralData()">Retry</button></div>`;
+  }
+}
+
+// ── Per-device viral toggle ──
+const deviceViralCache = {};
+
+async function toggleDeviceViral(deviceId, cid) {
+  const panel = document.getElementById('vp-'+cid);
+  const list = document.getElementById('vl-'+cid);
+  if (!panel) return;
+
+  if (panel.classList.contains('open')) {
+    panel.classList.remove('open');
+    return;
+  }
+
+  panel.classList.add('open');
+  list.innerHTML = '<div class="empty-state" style="padding:8px;font-size:0.72rem">Loading...</div>';
+
+  try {
+    const res = await api(`/metrics/viral/${encodeURIComponent(deviceId)}`);
+    const alerts = res.alerts || [];
+    deviceViralCache[deviceId] = alerts;
+
+    if (alerts.length === 0) {
+      list.innerHTML = '<div class="empty-state" style="padding:8px;font-size:0.72rem">No viral alerts for this account</div>';
+      return;
+    }
+
+    list.innerHTML = alerts.map(a => {
+      const cls = viralStatusClass(a.viral_score);
+      return `<div class="dc-viral-item">
+        <div class="dvi-left">
+          <span class="dvi-type">${viralTypeIcon(a.type)}</span>
+          <div class="dvi-info">
+            <div class="dvi-name">${a.content_id || a.type || 'Content'}</div>
+            <div class="dvi-date">${a.date || ''} · #${a.rank||'-'}</div>
+          </div>
+        </div>
+        <div class="dvi-right">
+          <div class="dvi-views">${fmt(a.current_views)}</div>
+          <div class="dvi-score"><span class="viral-badge ${cls}" style="font-size:0.55rem;padding:1px 6px">${a.viral_score} · ${viralStatusLabel(a.viral_score)}</span></div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    list.innerHTML = `<div class="empty-state" style="padding:8px;font-size:0.72rem;color:var(--red)">Error: ${e.message}</div>`;
+  }
+}
+
+// ── Trial Reels ──
+async function loadTrialReels() {
+  const filter = document.getElementById('trialDeviceFilter').value;
+  const url = filter === 'all' ? '/metrics/trials?limit=100' : `/metrics/trials/${filter}`;
+  try {
+    const res = await api(url);
+    const reels = filter === 'all' ? (res.reels || []) : (res.reels || []);
+    renderTrialReels(reels);
+    // Update device filter options
+    if (filter === 'all' && devices.length) {
+      const sel = document.getElementById('trialDeviceFilter');
+      const current = sel.value;
+      sel.innerHTML = '<option value="all">All devices</option>';
+      devices.forEach(d => {
+        sel.innerHTML += `<option value="${d.device_id}" ${d.device_id===current?'selected':''}>${d.username||d.device_id}</option>`;
+      });
+    }
+    // Badge
+    const badge = document.getElementById('trialsCount');
+    if (reels.length > 0) badge.textContent = `(${reels.length})`;
+    else badge.textContent = '';
+  } catch(e) {
+    const isTimeout = e.name === 'AbortError';
+    const msg = isTimeout ? 'Connection timed out' : 'Failed to load trial reels';
+    document.getElementById('trialsGrid').innerHTML = `<div class="error-banner">${msg}<button onclick="loadTrialReels()">Retry</button></div>`;
+  }
+}
+
+function renderTrialReels(reels) {
+  const grid = document.getElementById('trialsGrid');
+  if (!reels.length) {
+    grid.innerHTML = '<div class="empty-state">No trial reels data yet. Run a check on a device with trial reels enabled.</div>';
+    return;
+  }
+  // Group by device_id + username + checked_at (each account gets its own card)
+  const groups = {};
+  for (const r of reels) {
+    const key = r.device_id + '|' + (r.username || '') + '|' + r.checked_at;
+    if (!groups[key]) groups[key] = { device_id: r.device_id, username: r.username, checked_at: r.checked_at, reels: [] };
+    groups[key].reels.push(r);
+  }
+  const sorted = Object.values(groups).sort((a,b) => (b.checked_at||'').localeCompare(a.checked_at||''));
+
+  grid.innerHTML = sorted.map(g => `
+    <div class="trial-card">
+      <div class="trial-head">
+        <span class="trial-device">${g.username ? '@'+escHtml(g.username) : g.device_id}</span>
+        <span class="trial-time">${shortTs(g.checked_at)}</span>
+      </div>
+      <div class="trial-reel-row">
+        ${g.reels.map(r => {
+          const tUser = g.username || '';
+          const tDate = r.reel_date || '';
+          const tIdx = r.reel_index || 0;
+          const tTitle = r.title || '';
+          const urlInner = r.ig_url
+            ? `<a class="url-link" href="${escHtml(r.ig_url)}" target="_blank" rel="noopener">View on IG &#8599;</a>
+               <button class="url-edit-icon" title="Edit URL" onclick="editReelUrl(this)">&#9998;</button>
+               <button class="url-edit-icon" title="Remove URL" onclick="removeReelUrl(this)">&#128465;</button>`
+            : `<input type="url" class="url-input" placeholder="Paste IG URL..." onkeydown="_urlInputKey(event)">
+               <button class="url-btn" onclick="saveReelUrl(this)">Save URL</button>`;
+          const urlBlock = r.is_available
+            ? `<div class="url-block"
+                  data-kind="trial"
+                  data-title="${escHtml(tTitle)}"
+                  data-username="${escHtml(tUser)}"
+                  data-date="${escHtml(tDate)}"
+                  data-position="${tIdx}"
+                  data-current-url="${escHtml(r.ig_url || '')}">${urlInner}</div>`
+            : '';
+          return `
+          <div class="trial-reel ${r.is_available?'':'unavailable'}">
+            <div class="tr-title">${escHtml(r.title||'Reel #'+(r.reel_index+1))}</div>
+            <div class="tr-date">${escHtml(r.reel_date||'-')} ${r.duration?'· '+escHtml(r.duration):''}</div>
+            ${r.is_available ? `
+              <div class="tr-metric"><span class="tr-label">Views</span><span class="tr-val">${fmtNum(r.views)}</span></div>
+              <div class="tr-metric"><span class="tr-label">Watch</span><span class="tr-val">${escHtml(r.watch_time||'-')}</span></div>
+              <div class="tr-metric"><span class="tr-label">Likes</span><span class="tr-val">${fmtNum(r.likes)}</span></div>
+              <div class="tr-metric"><span class="tr-label">Comments</span><span class="tr-val">${fmtNum(r.comments)}</span></div>
+              <div class="tr-metric"><span class="tr-label">Shares</span><span class="tr-val">${fmtNum(r.shares)}</span></div>
+              <div class="tr-metric"><span class="tr-label">Interactions</span><span class="tr-val">${fmtNum(r.interactions)}</span></div>
+              <div class="tr-metric"><span class="tr-label">Profile</span><span class="tr-val">${fmtNum(r.profile_activity)}</span></div>
+              ${urlBlock}
+            ` : '<div style="text-align:center;color:var(--muted);font-size:0.7rem;padding:10px 0">Not available yet</div>'}
+          </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function fmtNum(v) { return v != null ? Number(v).toLocaleString() : '-'; }
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// Also load viral count on initial load
+async function loadViralCount() {
+  try {
+    const res = await api('/metrics/viral/top?limit=7');
+    const countEl = document.getElementById('viralCount');
+    if (res.alerts && res.alerts.length > 0) countEl.textContent = `(${res.alerts.length})`;
+    else countEl.textContent = '';
+  } catch(e) {}
+}
+
+// ── Auto-refresh: now driven by busy→free transitions in pollActivity ──
+// pollForChanges() used to compare per-account checked_at timestamps; that
+// entire system was replaced with the simpler activity-driven approach below
+// (see the Activity Monitor IIFE). This stub remains so external callers
+// (e.g. the activity poller falling back) don't break.
+let lastCheckedAts = {};
+let _refreshTimer = null;
+
+// Schedule a single loadAll() with a 5s debounce. If multiple devices
+// transition busy→free in quick succession (e.g. Run All), they collapse
+// into one refresh instead of N.
+function scheduleRefresh() {
+  if (_refreshTimer) clearTimeout(_refreshTimer);
+  _refreshTimer = setTimeout(async () => {
+    _refreshTimer = null;
+    try {
+      await loadAll();
+      _reapplyCheckingState();
+    } catch (e) { /* silent */ }
+  }, 5000);
+}
+
+// Safety-net poll: every 60s, fetch ONLY /metrics/latest (cheap) and
+// compare per-account checked_at vs lastCheckedAts. If any changed, call
+// scheduleRefresh() so the full loadAll() runs (debounced 5s). This
+// catches the rare case where the activity poller missed a busy→free
+// transition (e.g. /worker/report renewed remote_check just before the
+// activity poll, so the device never appears "free").
+async function pollForChanges() {
+  try {
+    const hdrs = {};
+    const k = localStorage.getItem('ig_api_key') || '';
+    if (k) hdrs['X-API-Key'] = k;
+    const r = await fetch('/api/v1/growth/metrics/latest',
+                          {headers: hdrs, signal: AbortSignal.timeout(8000)});
+    if (!r.ok) return;
+    const data = await r.json();
+    const rows = data.metrics || data || [];
+    let changed = false;
+    for (const m of rows) {
+      const key = `${m.device_id}::${m.username || ''}`;
+      const prev = lastCheckedAts[key] || '';
+      const curr = m.checked_at || '';
+      if (curr && curr !== prev) {
+        lastCheckedAts[key] = curr;
+        changed = true;
+      }
+    }
+    if (changed) scheduleRefresh();
+  } catch (e) { /* silent */ }
+}
+
+// ── Inline URL registration (replaces former Video Library tab) ──
+// Each reel/trial expanded card has an inline input. The lookup key is
+// the same one the backend uses (_build_lookup_key in growth/routes.py) so
+// the URL we save here is reconciled with future scrapes via
+// content_get_by_title.
+
+// JS mirror of growth/routes.py _build_lookup_key. Keep both in sync.
+function _build_lookup_key(item, kind) {
+  kind = kind || 'video';
+  const title = (item.title || '').trim();
+  const username = (item.username || '').trim();
+  let content_id = '';
+  if (kind === 'trial') {
+    const rd = item.reel_date || '';
+    const ri = item.reel_index || 0;
+    if (rd) content_id = 'Trial_' + rd + '_t' + ri + '_' + username;
+  } else {
+    const vd = item.date || '';
+    const vp = item.position || 0;
+    if (vd) content_id = 'Reel_' + vd + '_r' + vp + '_' + username;
+  }
+  return content_id ? (title + ' ' + content_id).trim() : title;
+}
+
+// Save the URL pasted into a reel's inline input. The button id encodes
+// the data — kind, title, username, date, position/index — so we don't
+// have to keep a parallel JS structure.
+async function saveReelUrl(btn) {
+  const wrap = btn.closest('.url-block');
+  if (!wrap) return;
+  const input = wrap.querySelector('.url-input');
+  const url = (input.value || '').trim();
+  if (!url) {
+    input.classList.add('error');
+    input.focus();
+    return;
+  }
+  // Decode the lookup key data from the wrapper's dataset
+  const title = wrap.dataset.title || '';
+  const username = wrap.dataset.username || '';
+  const kind = wrap.dataset.kind || 'video';
+  const date = wrap.dataset.date || '';
+  const pos = wrap.dataset.position || '';
+  const lookupKey = _build_lookup_key(
+    { title, username, date, position: pos ? parseInt(pos) : 0,
+      reel_date: date, reel_index: pos ? parseInt(pos) : 0 },
+    kind,
+  );
+  if (!lookupKey) {
+    input.classList.add('error');
+    alert("Can't save URL: this reel has no title or date in the registry yet. Re-run a check first.");
+    return;
+  }
+  input.disabled = true;
+  btn.disabled = true;
+  const oldText = btn.textContent;
+  btn.textContent = '...';
+  try {
+    await api('/content/videos/set', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: lookupKey, url, username }),
+    });
+    // Swap inline input → display link without full reload.
+    _renderUrlBlockDisplay(wrap, url);
+  } catch (e) {
+    input.classList.add('error');
+    btn.textContent = oldText;
+    btn.disabled = false;
+    input.disabled = false;
+    alert('Failed to save URL: ' + (e.message || e));
+  }
+}
+
+// Switch the URL block from display mode (link + edit icon) to edit
+// mode (input + save + cancel) — pre-fills with the current URL.
+function editReelUrl(iconBtn) {
+  const wrap = iconBtn.closest('.url-block');
+  if (!wrap) return;
+  const link = wrap.querySelector('.url-link');
+  const currentUrl = link ? link.getAttribute('href') : '';
+  _renderUrlBlockInput(wrap, currentUrl);
+  const input = wrap.querySelector('.url-input');
+  if (input) { input.focus(); input.select(); }
+}
+
+// Cancel edit — restore the original link from data-current.
+function cancelReelUrlEdit(btn) {
+  const wrap = btn.closest('.url-block');
+  if (!wrap) return;
+  const originalUrl = wrap.dataset.currentUrl || '';
+  if (originalUrl) {
+    _renderUrlBlockDisplay(wrap, originalUrl);
+  } else {
+    _renderUrlBlockEmpty(wrap);
+  }
+}
+
+// Enter inside the input → save. Escape → cancel.
+function _urlInputKey(e) {
+  if (e.key === 'Enter') {
+    const btn = e.target.closest('.url-block').querySelector('.url-btn:not(.outline)');
+    if (btn) saveReelUrl(btn);
+  } else if (e.key === 'Escape') {
+    const btn = e.target.closest('.url-block').querySelector('.url-btn.outline');
+    if (btn) cancelReelUrlEdit(btn);
+  }
+  e.target.classList.remove('error');
+}
+
+function _renderUrlBlockDisplay(wrap, url) {
+  wrap.dataset.currentUrl = url;
+  wrap.innerHTML = `
+    <a class="url-link" href="${escHtml(url)}" target="_blank" rel="noopener">View on IG ↗</a>
+    <button class="url-edit-icon" title="Edit URL" onclick="editReelUrl(this)">✏️</button>
+    <button class="url-edit-icon" title="Remove URL" onclick="removeReelUrl(this)">🗑️</button>
+  `;
+}
+
+// Remove the registered URL for this reel. Confirms first, then calls the
+// backend by title and swaps the block back to empty input mode.
+async function removeReelUrl(iconBtn) {
+  const wrap = iconBtn.closest('.url-block');
+  if (!wrap) return;
+  if (!confirm('Remove this URL? You can paste a new one anytime.')) return;
+  const title = wrap.dataset.title || '';
+  const username = wrap.dataset.username || '';
+  const kind = wrap.dataset.kind || 'video';
+  const date = wrap.dataset.date || '';
+  const pos = wrap.dataset.position || '';
+  const lookupKey = _build_lookup_key(
+    { title, username, date, position: pos ? parseInt(pos) : 0,
+      reel_date: date, reel_index: pos ? parseInt(pos) : 0 },
+    kind,
+  );
+  if (!lookupKey) {
+    alert("Can't identify which URL to remove (missing title or date).");
+    return;
+  }
+  iconBtn.disabled = true;
+  try {
+    await api('/content/videos/by-title?title=' + encodeURIComponent(lookupKey),
+              { method: 'DELETE' });
+    _renderUrlBlockEmpty(wrap);
+  } catch (e) {
+    iconBtn.disabled = false;
+    alert('Failed to remove URL: ' + (e.message || e));
+  }
+}
+
+function _renderUrlBlockInput(wrap, prefill) {
+  wrap.innerHTML = `
+    <input type="url" class="url-input" placeholder="Paste IG URL..." value="${escHtml(prefill || '')}" onkeydown="_urlInputKey(event)">
+    <button class="url-btn" onclick="saveReelUrl(this)">Save</button>
+    <button class="url-btn outline" onclick="cancelReelUrlEdit(this)">Cancel</button>
+  `;
+}
+
+function _renderUrlBlockEmpty(wrap) {
+  wrap.dataset.currentUrl = '';
+  wrap.innerHTML = `
+    <input type="url" class="url-input" placeholder="Paste IG URL..." onkeydown="_urlInputKey(event)">
+    <button class="url-btn" onclick="saveReelUrl(this)">Save URL</button>
+  `;
+}
+
+// Initial bootstrap. Subsequent refreshes are scheduled by busy→free
+// transitions detected in the Activity Monitor below (with 5s debounce).
+// A 60-second safety-net poll catches rare cases where activity-driven
+// refresh misses a transition (see pollForChanges above).
+loadAll().then(() => {
+  for (const key in latestMetrics) lastCheckedAts[key] = latestMetrics[key].checked_at || '';
+});
+loadViralCount();
+loadTrialReels();
+setInterval(pollForChanges, 60000);
+
+// -- Activity Monitor — single source of truth for "device busy" --
+// Polls /api/v1/activity every 10s. Tracks busy devices via _busyDevices;
+// detects busy→free transitions and schedules a debounced loadAll().
+// Watchdog: any device busy >15 min is force-cleared locally so the UI
+// doesn't hang forever on a stuck backend lock.
+(function(){
+  var _basePad = 48;
+  function pollActivity(){
+    var hdrs = {}; var k = localStorage.getItem('ig_api_key')||'';
+    if(k) hdrs['X-API-Key'] = k;
+    fetch('/api/v1/activity',{headers:hdrs,signal:AbortSignal.timeout(5000)})
+      .then(function(r){ if(r.ok) return r.json(); })
+      .then(function(d){ if(d) updateActivityUI(d); })
+      .catch(function(){});
+  }
+  function fmtActivity(data){
+    var parts = [];
+    if(data.checker && data.checker.active){
+      var c=data.checker; var l='Checker: '+(c.mode==='all'?'all accounts':c.mode==='single'?'single':'manual');
+      if(c.total) l+=' ('+c.completed+'/'+c.total+')';
+      if(c.current) l+=' \u2014 @'+c.current;
+      if(c.trigger==='scheduler') l+=' [sched]';
+      parts.push(l);
+    }
+    if(data.growth && data.growth.active){
+      var g=data.growth; var l='Growth: ';
+      if(g.devices&&g.devices.length){
+        var local=g.devices.filter(function(d){return !d._remote;});
+        var remote=g.devices.filter(function(d){return d._remote;});
+        var labels=[];
+        if(local.length) labels.push(local.map(function(d){return deviceLabel(d.device_id);}).join(', '));
+        if(remote.length) labels.push(remote.map(function(d){return deviceLabel(d.device_id)+' [worker]';}).join(', '));
+        l+=labels.join(', ');
+      } else l+=(g.mode||'checking');
+      parts.push(l);
+    }
+    if(data.status && data.status.active){
+      var s=data.status; var l='Status: ';
+      if(s.devices&&s.devices.length){
+        var local=s.devices.filter(function(d){return !d._remote;});
+        var remote=s.devices.filter(function(d){return d._remote;});
+        var labels=[];
+        if(local.length) labels.push(local.map(function(d){return deviceLabel(d.device_id);}).join(', '));
+        if(remote.length) labels.push(remote.map(function(d){return deviceLabel(d.device_id)+' [worker]';}).join(', '));
+        l+=labels.join(', ');
+      } else l+=(s.mode||'checking');
+      parts.push(l);
+    }
+    return parts;
+  }
+  function updateActivityUI(data){
+    // ── Dots + banner (cosmetic) ──
+    var dotG=document.getElementById('dot-growth'), dotS=document.getElementById('dot-status'), dotC=document.getElementById('dot-checker');
+    var banner=document.getElementById('activityBanner');
+    if(dotG) dotG.classList.toggle('active',!!(data.growth&&data.growth.active));
+    if(dotS) dotS.classList.toggle('active',!!(data.status&&data.status.active));
+    if(dotC) dotC.classList.toggle('active',!!(data.checker&&data.checker.active));
+    var parts=fmtActivity(data);
+    if(parts.length && banner){
+      banner.innerHTML='<span style="font-weight:600">CHECK IN PROGRESS</span> '+parts.join(' &nbsp;|&nbsp; ');
+      banner.classList.add('visible');
+      document.body.style.paddingTop=(_basePad+banner.offsetHeight)+'px';
+    } else if(banner){
+      banner.classList.remove('visible');
+      document.body.style.paddingTop='';
+    }
+
+    // ── Compute new busy set from backend ──
+    var growthData = data.growth || {};
+    var nowBusy = new Set();
+    if(growthData.active && growthData.devices){
+      growthData.devices.forEach(function(d){ nowBusy.add(d.device_id); });
+    }
+
+    // ── Detect busy→free transitions ──
+    // A device tracked previously (in _busyDevices or _pendingClick) that is
+    // no longer busy → schedule refresh.
+    var prevTracked = new Set();
+    _busyDevices.forEach(function(did){ prevTracked.add(did); });
+    _pendingClick.forEach(function(did){ prevTracked.add(did); });
+    var anyFreed = false;
+    prevTracked.forEach(function(did){
+      if(!nowBusy.has(did)) anyFreed = true;
+    });
+
+    // ── Watchdog: clear devices stuck busy beyond _WATCHDOG_MS ──
+    var nowMs = Date.now();
+    var stuck = [];
+    nowBusy.forEach(function(did){
+      if(!_busySince[did]) _busySince[did] = nowMs;
+      else if((nowMs - _busySince[did]) > _WATCHDOG_MS) stuck.push(did);
+    });
+    if(stuck.length){
+      console.warn('[activity] Watchdog: forcing free on stuck devices:', stuck);
+      stuck.forEach(function(did){ nowBusy.delete(did); delete _busySince[did]; });
+      anyFreed = true;
+    }
+    // Cleanup _busySince for devices no longer busy
+    Object.keys(_busySince).forEach(function(did){
+      if(!nowBusy.has(did)) delete _busySince[did];
+    });
+
+    // ── Reconcile _pendingClick: once backend confirms busy, drop pending ──
+    var toClear = [];
+    _pendingClick.forEach(function(did){
+      if(nowBusy.has(did)) toClear.push(did);
+    });
+    toClear.forEach(function(did){ _pendingClick.delete(did); });
+
+    // ── Commit new busy set ──
+    _busyDevices.clear();
+    nowBusy.forEach(function(did){ _busyDevices.add(did); });
+
+    // ── Apply .checking class (union of backend busy + pending clicks) ──
+    var allBusy = new Set();
+    _busyDevices.forEach(function(did){ allBusy.add(did); });
+    _pendingClick.forEach(function(did){ allBusy.add(did); });
+    document.querySelectorAll('.device-group[data-device-id]').forEach(function(el){
+      el.classList.toggle('checking', allBusy.has(el.dataset.deviceId));
+    });
+
+    // ── On any busy→free transition, schedule a debounced refresh ──
+    if(anyFreed){
+      // Stale pending clicks (request never reached orchestrator) are dropped
+      // on the transition that follows.
+      _pendingClick.clear();
+      scheduleRefresh();
+    }
+  }
+  pollActivity(); setInterval(pollActivity,10000);
+})();
+</script>
+</body>
+</html>

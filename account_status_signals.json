@@ -1,0 +1,155 @@
+{
+  "_help": "UI signals for detecting screens and parsing Account Status. Edit freely — reload via POST /api/v1/signals/reload",
+
+  "screens": {
+    "_help": "Patterns to detect which IG screen is currently visible",
+    "home": {
+      "_help": "Home feed — detected by feed_tab being selected or Instagram Home Feed content-desc",
+      "resource_ids": ["com.instagram.android:id/feed_tab"],
+      "texts": ["Instagram Home Feed"]
+    },
+    "profile": {
+      "_help": "Profile screen — detected by profile_header_container or Edit/Share profile text",
+      "resource_ids": ["com.instagram.android:id/profile_header_container", "com.instagram.android:id/profile_tab_layout", "com.instagram.android:id/user_detail_fragment"],
+      "texts": ["Edit profile", "Editar perfil", "Share profile", "Compartir perfil"]
+    },
+    "settings": {
+      "_help": "Settings screen — Compose-based, no resource-ids. Title is 'Settings and activity'",
+      "resource_ids": [],
+      "texts": ["Settings and activity", "Configuracion y actividad", "Settings and privacy", "Configuracion y privacidad"]
+    },
+    "account_status": {
+      "_help": "Account Status screen — action_bar_title has resource-id and text='Account Status'. Also has 3 section buttons with content-desc.",
+      "resource_ids": ["com.instagram.android:id/action_bar_title"],
+      "texts": ["Account Status", "Estado de la cuenta"],
+      "content_desc_patterns": ["Removed content and messaging issues", "Availability to people under 18", "Features you can't use", "Content and messages", "Features", "Under 18", "Reach"]
+    },
+    "account_status_detail": {
+      "resource_ids": [],
+      "texts": ["Learn more", "Mas informacion", "appeal", "Appeal", "Apelar", "Nothing to worry about", "No hay nada de que preocuparse"]
+    }
+  },
+
+  "navigation": {
+    "_help": "Text patterns used to find and tap UI elements during navigation",
+    "profile_tab": {
+      "texts": ["Profile", "Perfil"],
+      "resource_ids": ["com.instagram.android:id/profile_tab"]
+    },
+    "menu_icon": {
+      "_help": "Hamburger menu on profile — has NO resource-id, only content-desc='Options'. Goes DIRECTLY to Settings (no intermediate menu).",
+      "texts": ["Options", "Opciones"],
+      "content_desc": ["Options", "Opciones"],
+      "resource_ids": []
+    },
+    "settings_option": {
+      "_help": "Not used for navigation (Options goes direct to Settings) — kept for fallback detection",
+      "texts": ["Settings and activity", "Configuracion y actividad", "Settings and privacy", "Configuracion y privacidad", "Settings", "Configuracion"]
+    },
+    "account_status_option": {
+      "texts": ["Account Status", "Estado de la cuenta", "Account status"]
+    }
+  },
+
+  "account_state": {
+    "_help": "Signals to detect account state when IG opens. Priority: banned > checkpoint > expired > active. Checked BEFORE navigating to Account Status.",
+
+    "active": {
+      "_help": "Feed loaded, session alive",
+      "resource_ids": ["tab_icon", "nav_feed", "action_bar_large_title", "clips_tab", "profile_tab", "feed_tab"],
+      "texts": ["your story", "tu historia"]
+    },
+    "expired": {
+      "_help": "Login/welcome screen visible — session expired",
+      "resource_ids": ["login_username", "password", "log_in_button", "login_phone_email_or_username", "landing_screen", "sign_up_with_phone"],
+      "texts": ["log in", "sign in", "iniciar sesion", "get started", "i already have an account", "continue without an account", "create new account", "phone number, username", "phone number, email", "forgot password", "don't have an account", "empezar", "ya tengo una cuenta", "continuar sin cuenta"]
+    },
+    "checkpoint": {
+      "_help": "IG asked for verification (challenge/checkpoint, incl. phone verification)",
+      "resource_ids": ["challenge", "verify", "two_factor", "security_code"],
+      "texts": ["verify your account", "we detected unusual", "confirm your identity", "help us confirm", "we noticed unusual", "verifica tu cuenta", "actividad inusual", "enter your mobile number", "send code", "confirm this mobile number", "we use phone numbers added here to help you log in"]
+    },
+    "banned": {
+      "_help": "Account disabled/suspended by IG",
+      "resource_ids": ["suspended", "disabled_account", "appeal"],
+      "texts": ["your account has been disabled", "your account has been suspended", "this account has been disabled", "we suspended your account", "we disabled your account", "you can't use instagram", "your account is disabled", "account suspended", "violating our terms", "violating our community guidelines", "goes against our community guidelines", "disagree with this decision", "request a review", "tu cuenta ha sido deshabilitada", "tu cuenta ha sido suspendida", "cuenta suspendida", "no puedes usar instagram"]
+    }
+  },
+
+  "sections": {
+    "_help": "Known sections on Account Status. Sections vary by account type (personal vs business/creator). The parser dynamically detects which sections are present in the UI. If an unknown section is found, generic indicators are used.",
+
+    "content_removed": {
+      "display_name": "Removed content and messaging issues",
+      "label_texts": [
+        "Removed content and messaging issues",
+        "Contenido eliminado y problemas con los mensajes",
+        "Content removed",
+        "Contenido eliminado",
+        "Content and messages",
+        "Contenido y mensajes"
+      ],
+      "detail_ok_indicators": ["not affected right now", "not at risk", "Nothing to worry about", "No hay nada de que preocuparse", "Thank you for following", "No issues", "Sin problemas"],
+      "detail_problem_indicators": ["goes against", "may go against", "violation", "infraccion", "strike", "your content was removed", "tu contenido fue eliminado", "puede ir en contra"]
+    },
+
+    "underage_visibility": {
+      "display_name": "Availability to people under 18",
+      "label_texts": [
+        "Availability to people under 18",
+        "Disponibilidad para menores de 18",
+        "Available to under 18",
+        "Disponibilidad para menores",
+        "Under 18",
+        "Menores de 18"
+      ],
+      "detail_ok_indicators": ["age appropriate guidelines", "not affected right now", "not at risk", "Nothing to worry about", "No hay nada de que preocuparse", "eligible", "available", "can see your profile"],
+      "detail_problem_indicators": ["not eligible", "not available", "no elegible", "no disponible", "restricted", "restringido", "limited", "limitado", "can't see"]
+    },
+
+    "restricted_features": {
+      "display_name": "Features you can't use",
+      "label_texts": [
+        "Features you can't use",
+        "Funciones que no puedes usar",
+        "restricted features",
+        "funciones restringidas",
+        "Features",
+        "Funciones"
+      ],
+      "detail_ok_indicators": ["use all Instagram features", "not affected right now", "not at risk", "Nothing to worry about", "No hay nada de que preocuparse", "Thank you for following", "have access to features"],
+      "detail_problem_indicators": ["can't use", "no puedes usar", "restricted", "restringido", "limited", "limitado", "disabled", "desactivado"]
+    },
+
+    "limits_to_reach": {
+      "display_name": "Limits to your reach",
+      "label_texts": [
+        "Limits to your reach",
+        "Limites a tu alcance",
+        "Limits on your reach",
+        "Limites en tu alcance",
+        "Reach",
+        "Alcance"
+      ],
+      "detail_ok_indicators": ["not affected right now", "not at risk", "Nothing to worry about", "No hay nada de que preocuparse", "your reach is not limited", "no limits", "You don't have limits to your account reach", "account activity follows our guidelines"],
+      "detail_problem_indicators": ["reach is limited", "limited reach", "reduced reach", "alcance limitado", "alcance reducido", "shadowban"]
+    },
+
+    "monetization": {
+      "display_name": "Monetization",
+      "label_texts": [
+        "Monetization",
+        "Monetizacion",
+        "Monetisation"
+      ],
+      "detail_ok_indicators": ["not affected right now", "not at risk", "Nothing to worry about", "No hay nada de que preocuparse", "eligible for monetization", "you can monetize", "You're able to monetize", "following all policies and guidelines related to your monetization"],
+      "detail_problem_indicators": ["not eligible", "no elegible", "suspended", "suspendida", "can't monetize", "no puedes monetizar", "ineligible", "unable to monetize", "unable to monetise", "no puedes monetizar"]
+    },
+
+    "_generic_indicators": {
+      "_help": "Fallback indicators for sections not listed above (discovered dynamically from UI)",
+      "detail_ok_indicators": ["not affected right now", "not at risk", "Nothing to worry about", "No hay nada de que preocuparse", "No issues", "Sin problemas", "Thank you for following", "follows our guidelines", "following all policies"],
+      "detail_problem_indicators": ["goes against", "violation", "infraccion", "strike", "restricted", "restringido", "limited", "limitado", "not eligible", "no elegible"]
+    }
+  }
+}

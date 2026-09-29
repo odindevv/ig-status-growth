@@ -1,0 +1,55 @@
+# ── Secrets / credentials ─────────────────────────────
+.env
+.env.*
+!.env.example
+data/api_keys.json
+
+# ── Runtime device registries (real accounts / serials) ─
+devices_growth.json
+devices_status.json
+!devices_*.example.json
+
+# ── Databases ─────────────────────────────────────────
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/*.sqlite
+data/*.sqlite3
+
+# ── Logs ──────────────────────────────────────────────
+logs/*
+!logs/.gitkeep
+*.log
+
+# ── UI dumps (debug_dumps output) ─────────────────────
+dumps/*
+!dumps/.gitkeep
+
+# ── Python ────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+venv/
+.venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ── OS / editor ───────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*~

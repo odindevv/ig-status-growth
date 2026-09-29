@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IG Unified API</title>
+<style>
+  :root {
+    --bg: #0f1117; --card: #1a1d27; --card-hover: #22252f;
+    --border: #2a2d3a; --border-hover: #6366f1;
+    --fg: #e4e4e7; --text: #e4e4e7; --muted: #71717a;
+    --accent: #6366f1; --accent-glow: rgba(99,102,241,0.15);
+    --green: #22c55e; --green-glow: rgba(34,197,94,0.12);
+    --blue: #3b82f6; --blue-glow: rgba(59,130,246,0.12);
+    --orange: #f97316; --orange-glow: rgba(249,115,22,0.12);
+    --red: #ef4444; --yellow: #eab308;
+    --purple: #a855f7; --cyan: #06b6d4;
+  }
+  html.light {
+    --bg: #f5f5f7; --card: #ffffff; --card-hover: #f0f0f3;
+    --border: #e0e0e4; --border-hover: #4f46e5;
+    --fg: #1a1a1a; --text: #1a1a1a; --muted: #6b7280;
+    --accent: #4f46e5; --accent-glow: rgba(79,70,229,0.12);
+    --green: #16a34a; --green-glow: rgba(22,163,74,0.1);
+    --blue: #2563eb; --blue-glow: rgba(37,99,235,0.1);
+    --orange: #ea580c; --orange-glow: rgba(234,88,12,0.1);
+    --red: #dc2626; --yellow: #ca8a04;
+    --purple: #7c3aed; --cyan: #0891b2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; padding: 32px;
+  }
+
+  /* ── Background subtle grid ── */
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: 0;
+    background-image:
+      radial-gradient(circle at 50% 0%, rgba(99,102,241,0.06) 0%, transparent 60%),
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 100% 100%, 60px 60px, 60px 60px;
+    pointer-events: none;
+  }
+
+  .container { position: relative; z-index: 1; max-width: 900px; width: 100%; }
+
+  /* ── Logo / Title ── */
+  .hero { text-align: center; margin-bottom: 48px; }
+  .logo {
+    width: 64px; height: 64px; margin: 0 auto 20px;
+    background: linear-gradient(135deg, var(--accent), #a855f7);
+    border-radius: 16px; display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 800; color: #fff;
+    box-shadow: 0 8px 32px rgba(99,102,241,0.3);
+  }
+  .hero h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; }
+  .hero h1 span { background: linear-gradient(135deg, var(--accent), #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p { color: var(--muted); font-size: 0.9rem; margin-top: 8px; }
+
+  /* ── Login form ── */
+  .login-box {
+    max-width: 380px; margin: 0 auto;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 36px 32px; text-align: center;
+  }
+  .login-box h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 20px; }
+  .login-input {
+    width: 100%; padding: 12px 16px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+    font-size: 0.9rem; outline: none; transition: border-color 0.2s;
+  }
+  .login-input:focus { border-color: var(--accent); }
+  .login-input::placeholder { color: var(--muted); }
+  .login-btn {
+    width: 100%; margin-top: 16px; padding: 12px; border: none; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), #a855f7);
+    color: #fff; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .login-btn:hover { opacity: 0.9; }
+  .login-btn:active { transform: scale(0.98); }
+  .login-error {
+    color: var(--red); font-size: 0.78rem; margin-top: 12px;
+    display: none; animation: shake 0.4s ease;
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+  .login-hint {
+    color: var(--muted); font-size: 0.7rem; margin-top: 16px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .lock-icon { font-size: 0.8rem; }
+
+  /* ── Service cards ── */
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 32px 24px; text-align: center;
+    cursor: pointer; transition: all 0.3s ease; position: relative;
+    overflow: hidden; text-decoration: none; color: inherit;
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+  }
+  .card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    opacity: 0; transition: opacity 0.3s ease;
+  }
+  .card:hover {
+    border-color: var(--border-hover); transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  }
+  .card:hover::before { opacity: 1; }
+
+  /* Per-card accent colors */
+  .card.growth:hover { background: var(--card-hover); border-color: var(--green); box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 60px var(--green-glow); }
+  .card.growth::before { background: linear-gradient(90deg, var(--green), #4ade80); }
+  .card.growth .icon { background: var(--green-glow); color: var(--green); }
+
+  .card.status:hover { background: var(--card-hover); border-color: var(--blue); box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 60px var(--blue-glow); }
+  .card.status::before { background: linear-gradient(90deg, var(--blue), #60a5fa); }
+  .card.status .icon { background: var(--blue-glow); color: var(--blue); }
+
+  .card.checker:hover { background: var(--card-hover); border-color: var(--orange); box-shadow: 0 12px 40px rgba(0,0,0,0.4), 0 0 60px var(--orange-glow); }
+  .card.checker::before { background: linear-gradient(90deg, var(--orange), #fb923c); }
+  .card.checker .icon { background: var(--orange-glow); color: var(--orange); }
+
+  /* Icon circle */
+  .icon {
+    width: 56px; height: 56px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; transition: transform 0.3s ease;
+  }
+  .card:hover .icon { transform: scale(1.1); }
+
+  /* Card text */
+  .card h2 { font-size: 1.1rem; font-weight: 600; }
+  .card p { color: var(--muted); font-size: 0.78rem; line-height: 1.5; }
+
+  /* Pill badges */
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 0.65rem; font-weight: 600; letter-spacing: 0.04em;
+    text-transform: uppercase; margin-top: 4px;
+  }
+  .card.growth .badge { background: rgba(34,197,94,0.1); color: var(--green); }
+  .card.status .badge { background: rgba(59,130,246,0.1); color: var(--blue); }
+  .card.checker .badge { background: rgba(249,115,22,0.1); color: var(--orange); }
+
+  /* ── Admin panel ── */
+  .admin-panel {
+    margin-top: 36px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px 24px;
+  }
+  .admin-panel h3 {
+    font-size: 0.95rem; font-weight: 600; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .admin-panel h3 .admin-badge {
+    background: rgba(239,68,68,0.12); color: var(--red);
+    font-size: 0.6rem; padding: 2px 8px; border-radius: 10px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .key-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  .key-table th {
+    text-align: left; font-size: 0.68rem; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 6px 10px; border-bottom: 1px solid var(--border);
+  }
+  .key-table td {
+    padding: 10px; font-size: 0.82rem; border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .key-table .key-preview {
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.75rem;
+    color: var(--accent); background: rgba(99,102,241,0.08);
+    padding: 3px 8px; border-radius: 6px;
+  }
+  .key-table .del-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    padding: 4px 12px; border-radius: 6px; font-size: 0.7rem; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .key-table .del-btn:hover { border-color: var(--red); color: var(--red); }
+  .key-empty { color: var(--muted); font-size: 0.8rem; text-align: center; padding: 16px; }
+  .create-row { display: flex; gap: 10px; align-items: center; }
+  .create-input {
+    flex: 1; padding: 10px 14px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+    font-size: 0.82rem; outline: none; transition: border-color 0.2s;
+  }
+  .create-input:focus { border-color: var(--accent); }
+  .create-input::placeholder { color: var(--muted); }
+  .create-btn {
+    padding: 10px 20px; border: none; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), #a855f7);
+    color: #fff; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    transition: opacity 0.2s; white-space: nowrap;
+  }
+  .create-btn:hover { opacity: 0.9; }
+  .new-key-banner {
+    margin-top: 14px; padding: 14px 16px; border-radius: 10px;
+    background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25);
+    display: none;
+  }
+  .new-key-banner .nk-label { font-size: 0.72rem; color: var(--green); font-weight: 600; margin-bottom: 6px; }
+  .new-key-banner .nk-value {
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.82rem;
+    color: var(--text); word-break: break-all; user-select: all;
+  }
+  .new-key-banner .nk-hint { font-size: 0.68rem; color: var(--muted); margin-top: 6px; }
+
+  /* ── Summary bar ── */
+  .summary-bar {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px; margin-top: 32px;
+  }
+  .sum-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 14px; text-align: center;
+  }
+  .sum-card .sum-val { font-size: 1.5rem; font-weight: 700; }
+  .sum-card .sum-lbl { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+  .sum-card .sum-val.green { color: var(--green); }
+  .sum-card .sum-val.red { color: var(--red); }
+  .sum-card .sum-val.yellow { color: var(--yellow); }
+  .sum-card .sum-val.blue { color: var(--blue); }
+  .sum-card .sum-val.muted { color: var(--muted); font-size: 0.85rem; }
+
+  /* ── Health banner ── */
+  .health-banner {
+    display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+    border-radius: 12px; margin-top: 20px; font-size: 0.82rem; font-weight: 600;
+  }
+  .health-banner.healthy { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); color: var(--green); }
+  .health-banner.warning { background: rgba(234,179,8,0.08); border: 1px solid rgba(234,179,8,0.25); color: var(--yellow); }
+  .health-banner.critical { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); color: var(--red); }
+  .health-banner .hb-icon { font-size: 1.2rem; }
+  .health-banner .hb-detail { font-weight: 400; font-size: 0.75rem; color: var(--muted); margin-left: auto; }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center; margin-top: 48px; color: var(--muted);
+    font-size: 0.72rem; letter-spacing: 0.02em;
+  }
+  .footer .version { color: var(--accent); font-weight: 600; }
+
+  /* ── Logout button ── */
+  .logout-row { text-align: right; margin-bottom: 8px; }
+  .logout-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    padding: 5px 14px; border-radius: 8px; font-size: 0.72rem; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+  /* ── Status dots (live) ── */
+  .status-row {
+    display: flex; align-items: center; gap: 6px; justify-content: center;
+    margin-top: 4px;
+  }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green); animation: pulse 2s infinite;
+  }
+  .dot.offline { background: var(--muted); animation: none; }
+  .status-label { font-size: 0.68rem; color: var(--muted); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+    50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+  }
+
+  .hidden { display: none !important; }
+
+  /* ── Responsive ── */
+  @media (max-width: 700px) {
+    .cards { grid-template-columns: 1fr; max-width: 360px; margin: 0 auto; }
+    .hero h1 { font-size: 1.4rem; }
+  }
+
+  /* ── Nav bar ── */
+  .topnav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: var(--bg); opacity: 0.97; backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 2px;
+    padding: 0 20px; height: 40px; font-size: 13px;
+  }
+  .topnav a {
+    color: var(--muted); text-decoration: none; padding: 8px 14px;
+    border-radius: 6px; transition: color 0.15s, background 0.15s;
+    font-weight: 500;
+  }
+  .topnav a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+  .topnav a.active { color: var(--accent); background: var(--accent-glow); }
+  body { padding-top: 52px; }
+  /* ── Activity indicator ── */
+  .activity-dot { display: none; width: 7px; height: 7px; border-radius: 50%; background: var(--yellow); margin-left: 4px; animation: pulse-dot 1.5s ease-in-out infinite; vertical-align: middle; }
+  .activity-dot.active { display: inline-block; }
+  @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  .activity-banner { display: none; position: fixed; top: 40px; left: 0; right: 0; z-index: 99; background: rgba(234,179,8,0.08); border-bottom: 1px solid rgba(234,179,8,0.18); padding: 5px 20px; font-size: 0.72rem; color: var(--yellow); backdrop-filter: blur(8px); }
+  .activity-banner.visible { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="/" class="active" title="Overview &amp; summary of all services">Hub</a>
+  <a href="/growth" title="Follower &amp; views tracking per device">Growth <span class="activity-dot" id="adot-growth"></span></a>
+  <a href="/status" title="Ban, captcha &amp; account health detection">Status <span class="activity-dot" id="adot-status"></span></a>
+  <a href="/checker" title="Bulk username availability checker">Checker <span class="activity-dot" id="adot-checker"></span></a>
+  <button onclick="toggleTheme()" id="themeToggle" title="Switch light/dark mode" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem;margin-left:auto">🌙</button>
+</nav>
+<script>
+function toggleTheme(){var h=document.documentElement;h.classList.toggle('light');var t=h.classList.contains('light')?'light':'dark';localStorage.setItem('ig_theme',t);document.getElementById('themeToggle').textContent=t==='light'?'🌑':'🌙';}
+(function(){var t=localStorage.getItem('ig_theme');if(t==='light'){document.documentElement.classList.add('light');document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('themeToggle');if(b)b.textContent='🌑';});}})();
+</script>
+<div class="activity-banner" id="activityBanner"></div>
+
+<div class="container">
+  <div class="hero">
+    <div class="logo">IG</div>
+    <h1><span>IG Unified</span> API</h1>
+    <p>All services running on a single instance</p>
+  </div>
+
+  <!-- Login screen -->
+  <div id="login-view">
+    <div class="login-box">
+      <h2>Sign In</h2>
+      <form id="login-form" onsubmit="return handleLogin(event)">
+        <input type="password" id="key-input" class="login-input" placeholder="Enter API key" autocomplete="off" autofocus>
+        <button type="submit" class="login-btn">Sign In</button>
+      </form>
+      <div id="login-error" class="login-error">Invalid API key</div>
+      <div class="login-hint"><span class="lock-icon">&#128274;</span> Protected access</div>
+    </div>
+  </div>
+
+  <!-- Hub (hidden until authenticated) -->
+  <div id="hub-view" class="hidden">
+    <div class="logout-row">
+      <button class="logout-btn" onclick="logout()">Sign Out</button>
+    </div>
+
+    <div class="cards">
+      <a href="/growth" class="card growth" id="card-growth">
+        <div class="icon">&#x1F4C8;</div>
+        <h2>Growth Metrics</h2>
+        <p>Professional dashboard insights, followers, views, trial reels & viral detection</p>
+        <span class="badge">ADB / UIAutomator</span>
+        <div class="status-row">
+          <div class="dot" id="dot-growth"></div>
+          <span class="status-label" id="lbl-growth">checking...</span>
+        </div>
+      </a>
+
+      <a href="/status" class="card status" id="card-status">
+        <div class="icon">&#x1F6E1;&#xFE0F;</div>
+        <h2>Account Status</h2>
+        <p>Account standing, restrictions, shadowban detection & state change alerts</p>
+        <span class="badge">ADB / UIAutomator</span>
+        <div class="status-row">
+          <div class="dot" id="dot-status"></div>
+          <span class="status-label" id="lbl-status">checking...</span>
+        </div>
+      </a>
+
+      <a href="/checker" class="card checker" id="card-checker">
+        <div class="icon">&#x1F50D;</div>
+        <h2>Account Checker</h2>
+        <p>Follower tracking, growth deltas, profile scraping & scheduled monitoring</p>
+        <span class="badge">HTTP Scraper</span>
+        <div class="status-row">
+          <div class="dot" id="dot-checker"></div>
+          <span class="status-label" id="lbl-checker">checking...</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Admin panel (hidden unless admin key) -->
+    <div id="admin-panel" class="admin-panel hidden">
+      <h3>API Keys <span class="admin-badge">Admin</span></h3>
+      <table class="key-table">
+        <thead><tr><th>Label</th><th>Key</th><th>Created</th><th></th></tr></thead>
+        <tbody id="keys-body"></tbody>
+      </table>
+      <div id="keys-empty" class="key-empty hidden">No API keys yet</div>
+      <div class="create-row">
+        <input type="text" id="key-label-input" class="create-input" placeholder="Label (optional, e.g. 'mobile-app')">
+        <button class="create-btn" onclick="createKey()">Create Key</button>
+      </div>
+      <div id="new-key-banner" class="new-key-banner">
+        <div class="nk-label">New API Key Created</div>
+        <div class="nk-value" id="new-key-value"></div>
+        <div class="nk-hint">Copy this key now — it won't be shown again.</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      IG Unified API <span class="version">v2.0</span>
+    </div>
+  </div>
+</div>
+
+<script>
+function getKey() { return localStorage.getItem('ig_api_key') || ''; }
+
+function handleLogin(e) {
+  e.preventDefault();
+  const key = document.getElementById('key-input').value.trim();
+  if (!key) return false;
+
+  // Validate key against the API
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+
+  fetch('/api/v1/growth/devices', { headers: { 'X-API-Key': key }, signal: AbortSignal.timeout(15000) })
+    .then(r => {
+      if (r.ok) {
+        localStorage.setItem('ig_api_key', key);
+        showHub();
+      } else {
+        errEl.style.display = 'block';
+        document.getElementById('key-input').select();
+      }
+    })
+    .catch(() => {
+      // If no API_KEY is set on server (no auth), any key works — try without key
+      fetch('/api/v1/growth/devices', { signal: AbortSignal.timeout(15000) })
+        .then(r => {
+          if (r.ok) {
+            localStorage.setItem('ig_api_key', key);
+            showHub();
+          } else {
+            errEl.style.display = 'block';
+          }
+        })
+        .catch(() => { errEl.textContent = 'Server unreachable'; errEl.style.display = 'block'; });
+    });
+
+  return false;
+}
+
+function logout() {
+  localStorage.removeItem('ig_api_key');
+  document.getElementById('hub-view').classList.add('hidden');
+  document.getElementById('login-view').classList.remove('hidden');
+  document.getElementById('key-input').value = '';
+  document.getElementById('key-input').focus();
+}
+
+function showHub() {
+  document.getElementById('login-view').classList.add('hidden');
+  document.getElementById('hub-view').classList.remove('hidden');
+  runHealthChecks();
+  checkAdmin();
+}
+
+// Health checks
+function runHealthChecks() {
+  const key = getKey();
+  const hdrs = key ? { 'X-API-Key': key } : {};
+
+  checkService('growth', 'dot-growth', 'lbl-growth', hdrs);
+  checkService('status', 'dot-status', 'lbl-status', hdrs);
+  checkService('checker', 'dot-checker', 'lbl-checker', hdrs);
+}
+
+// ── Admin key management ──
+async function checkAdmin() {
+  const key = getKey();
+  const hdrs = key ? { 'X-API-Key': key } : {};
+  try {
+    const r = await fetch('/api/v1/admin/whoami', { headers: hdrs, signal: AbortSignal.timeout(3000) });
+    if (r.ok) {
+      const data = await r.json();
+      if (data.is_admin) {
+        document.getElementById('admin-panel').classList.remove('hidden');
+        loadKeys();
+      }
+    }
+  } catch {}
+}
+
+async function loadKeys() {
+  const key = getKey();
+  const hdrs = key ? { 'X-API-Key': key } : {};
+  try {
+    const r = await fetch('/api/v1/admin/keys', { headers: hdrs });
+    if (!r.ok) return;
+    const data = await r.json();
+    const tbody = document.getElementById('keys-body');
+    const empty = document.getElementById('keys-empty');
+    if (!data.keys || data.keys.length === 0) {
+      tbody.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+    tbody.innerHTML = data.keys.map(k => `
+      <tr>
+        <td>${esc(k.label)}</td>
+        <td><span class="key-preview">${esc(k.key_preview)}</span></td>
+        <td style="color:var(--muted);font-size:0.75rem">${k.created_at ? new Date(k.created_at).toLocaleDateString() : ''}</td>
+        <td><button class="del-btn" onclick="deleteKey('${esc(k.id)}')">Delete</button></td>
+      </tr>
+    `).join('');
+  } catch {}
+}
+
+async function createKey() {
+  const key = getKey();
+  const hdrs = { 'Content-Type': 'application/json' };
+  if (key) hdrs['X-API-Key'] = key;
+  const label = document.getElementById('key-label-input').value.trim();
+  try {
+    const r = await fetch('/api/v1/admin/keys', {
+      method: 'POST', headers: hdrs,
+      body: JSON.stringify({ label: label }),
+    });
+    if (!r.ok) return;
+    const data = await r.json();
+    // Show the full key once
+    const banner = document.getElementById('new-key-banner');
+    document.getElementById('new-key-value').textContent = data.key;
+    banner.style.display = 'block';
+    document.getElementById('key-label-input').value = '';
+    loadKeys();
+  } catch {}
+}
+
+async function deleteKey(keyId) {
+  if (!confirm('Delete this API key? Any apps using it will lose access.')) return;
+  const key = getKey();
+  const hdrs = key ? { 'X-API-Key': key } : {};
+  try {
+    const r = await fetch('/api/v1/admin/keys/' + keyId, { method: 'DELETE', headers: hdrs });
+    if (r.ok) loadKeys();
+  } catch {}
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+async function checkService(prefix, dotId, lblId, hdrs) {
+  const dot = document.getElementById(dotId);
+  const lbl = document.getElementById(lblId);
+  try {
+    const r = await fetch(`/api/v1/${prefix}/devices`, { headers: hdrs, signal: AbortSignal.timeout(3000) });
+    if (r.ok) {
+      const data = await r.json();
+      const count = Array.isArray(data) ? data.length : (data.devices ? data.devices.length : 0);
+      dot.classList.remove('offline');
+      lbl.textContent = count > 0 ? `${count} device${count !== 1 ? 's' : ''}` : 'online';
+    } else {
+      if (prefix === 'checker') {
+        const r2 = await fetch('/api/v1/checker/accounts', { headers: hdrs, signal: AbortSignal.timeout(3000) });
+        if (r2.ok) {
+          const data2 = await r2.json();
+          const count2 = Array.isArray(data2) ? data2.length : 0;
+          dot.classList.remove('offline');
+          lbl.textContent = count2 > 0 ? `${count2} accounts` : 'online';
+          return;
+        }
+      }
+      dot.classList.add('offline');
+      lbl.textContent = 'auth error';
+    }
+  } catch {
+    dot.classList.add('offline');
+    lbl.textContent = 'offline';
+  }
+}
+
+// Auto-login if key exists in storage
+if (getKey()) {
+  // Verify stored key is still valid
+  fetch('/api/v1/growth/devices', { headers: { 'X-API-Key': getKey() }, signal: AbortSignal.timeout(15000) })
+    .then(r => {
+      if (r.ok) showHub();
+      else if (r.status === 401) logout();
+      else showHub();
+    })
+    .catch(() => showHub());
+} else {
+  // Check if server has no auth
+  fetch('/api/v1/growth/devices', { signal: AbortSignal.timeout(15000) })
+    .then(r => {
+      if (r.ok) {
+        localStorage.setItem('ig_api_key', '');
+        showHub();
+      }
+    })
+    .catch(() => {});
+}
+
+// -- Activity Monitor --
+(function(){
+  var _basePad = 52;
+  function pollActivity(){
+    if(document.getElementById('hub-view').classList.contains('hidden')) return;
+    var hdrs = {}; var k = localStorage.getItem('ig_api_key')||'';
+    if(k) hdrs['X-API-Key'] = k;
+    fetch('/api/v1/activity',{headers:hdrs,signal:AbortSignal.timeout(5000)})
+      .then(function(r){ if(r.ok) return r.json(); })
+      .then(function(d){ if(d) updateActivityUI(d); })
+      .catch(function(){});
+  }
+  function fmtActivity(data){
+    var parts = [];
+    if(data.checker && data.checker.active){
+      var c=data.checker; var l='Checker: '+(c.mode==='all'?'all accounts':c.mode==='single'?'single':'manual');
+      if(c.total) l+=' ('+c.completed+'/'+c.total+')';
+      if(c.current) l+=' \u2014 @'+c.current;
+      if(c.trigger==='scheduler') l+=' [sched]';
+      parts.push(l);
+    }
+    if(data.growth && data.growth.active){
+      var g=data.growth; var l='Growth: ';
+      if(g.devices&&g.devices.length){
+        var local=g.devices.filter(function(d){return !d._remote;});
+        var remote=g.devices.filter(function(d){return d._remote;});
+        var labels=[];
+        if(local.length) labels.push(local.map(function(d){return d.label||d.device_id;}).join(', '));
+        if(remote.length) labels.push(remote.map(function(d){return (d.label||d.device_id)+' [worker]';}).join(', '));
+        l+=labels.join(', ');
+      } else l+=(g.mode||'checking');
+      parts.push(l);
+    }
+    if(data.status && data.status.active){
+      var s=data.status; var l='Status: ';
+      if(s.devices&&s.devices.length){
+        var local=s.devices.filter(function(d){return !d._remote;});
+        var remote=s.devices.filter(function(d){return d._remote;});
+        var labels=[];
+        if(local.length) labels.push(local.map(function(d){return d.label||d.device_id;}).join(', '));
+        if(remote.length) labels.push(remote.map(function(d){return (d.label||d.device_id)+' [worker]';}).join(', '));
+        l+=labels.join(', ');
+      } else l+=(s.mode||'checking');
+      parts.push(l);
+    }
+    return parts;
+  }
+  function updateActivityUI(data){
+    var dotG=document.getElementById('adot-growth'), dotS=document.getElementById('adot-status'), dotC=document.getElementById('adot-checker');
+    var banner=document.getElementById('activityBanner');
+    if(dotG) dotG.classList.toggle('active',!!(data.growth&&data.growth.active));
+    if(dotS) dotS.classList.toggle('active',!!(data.status&&data.status.active));
+    if(dotC) dotC.classList.toggle('active',!!(data.checker&&data.checker.active));
+    var parts=fmtActivity(data);
+    if(parts.length && banner){
+      banner.innerHTML='<span style="font-weight:600">CHECK IN PROGRESS</span> '+parts.join(' &nbsp;|&nbsp; ');
+      banner.classList.add('visible');
+      document.body.style.paddingTop=(_basePad+banner.offsetHeight)+'px';
+    } else if(banner){
+      banner.classList.remove('visible');
+      document.body.style.paddingTop='';
+    }
+  }
+  pollActivity(); setInterval(pollActivity,10000);
+})();
+
+// (Summary bar & Health banner removed — were single-service metrics
+//  mislabeled as hub-level. To be replaced by proper hub-level overview.)
+</script>
+</body>
+</html>
